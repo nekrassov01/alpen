@@ -1,7 +1,7 @@
 alpen
 =====
 
-alpen is aws log parser/encoder.
+alpen is a CLI application for parsing and encoding AWS access logs
 
 Supported
 ---------
@@ -61,6 +61,26 @@ OPTIONS:
    --metadata, -m                                     enable metadata output (default: false)
    --glob-pattern value, -G value                     filter glob pattern: available for parsing zip only (default: "*")
    --help, -h                                         show help
+```
+
+Example
+-------
+
+```sh
+# Read and convert s3 logs from file
+alpen s3 -f "sample_s3.log"
+
+# Read s3 logs from file and convert to NDJSON format, also output metadata
+alpen s3 -f "sample_s3.log" -o json -m
+
+# Print pretty NDJSON in addition to the above
+alpen s3 -f "sample_s3.log" -o pretty-json -m
+
+# Read CloudFront logs from gzip file and skip header lines
+alpen cf -g "sample_cloudfront.log.gz" -s 1,2
+
+# Read ALB logs from zip file and convert all entries with `.log` extension
+alpen alb -z "sample_alb.log.zip" -G "*.log"
 ```
 
 Installation
