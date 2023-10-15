@@ -6,8 +6,9 @@ import (
 )
 
 const (
-	Name    = "alpen"
-	Version = "0.0.0"
+	Name     = "alpen"
+	Version  = "0.0.0"
+	Revision = "HEAD"
 )
 
 func main() {
