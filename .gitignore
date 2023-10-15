@@ -22,3 +22,6 @@ go.work
 
 # Additional
 *.[Bb]ackup
+cover.*
+/alpen
+dist/
