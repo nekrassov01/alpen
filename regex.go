@@ -22,7 +22,7 @@ func generateS3Patterns() (patterns []*regexp.Regexp) {
 		`([\d\-.]+)`,           // bytes_sent
 		`([\d\-.]+)`,           // object_size
 		`([\d\-.]+)`,           // total_time
-		`([\d\-.]+)`,           //turn_around_time
+		`([\d\-.]+)`,           // turn_around_time
 		`"([ -~]+)"`,           // referer
 		`"([ -~]+)"`,           // user_agent
 		`([!-~]+)`,             // version_id
