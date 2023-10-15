@@ -39,7 +39,7 @@ func textLineHandler(matches []string, fields []string, index int) (string, erro
 	for i, match := range matches[1:] {
 		if i < len(fields) {
 			builder.WriteRune(' ')
-			builder.WriteString(fmt.Sprintf("%s=\"%s\"", fields[i], match))
+			builder.WriteString(fmt.Sprintf("%s=\"%s\"", fields[i], strings.ReplaceAll(match, `"`, `\"`)))
 		}
 	}
 	return builder.String(), nil

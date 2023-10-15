@@ -250,7 +250,7 @@ func Test_textLineHandler(t *testing.T) {
 				index:   2,
 			},
 			want: want{
-				got: `index=2 field1="value1" field2="val"ue2"`,
+				got: `index=2 field1="value1" field2="val\"ue2"`,
 				err: nil,
 			},
 		},
