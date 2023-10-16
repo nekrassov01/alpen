@@ -311,7 +311,10 @@ func load(c *cli.Context, fields []string, patterns []*regexp.Regexp) (*parser.P
 	case PrettyJSON.String():
 		return parser.New(fields, patterns, prettyJSONLineHandler, prettyJSONMetadataHandler), nil
 	default:
-		return nil, fmt.Errorf("cannot parse command line flags: invalid output format: allowed values: %s", pipeJoin(outputFormat))
+		return nil, fmt.Errorf(
+			"cannot parse command line flags: invalid output format: allowed values: %s",
+			pipeJoin(outputFormat),
+		)
 	}
 }
 
@@ -330,7 +333,10 @@ func dispatch(c *cli.Context, p *parser.Parser) (result *parser.Result, results 
 		results, err = p.ParseZipEntries(c.String(zipFlag.Name), c.IntSlice(skipFlag.Name), c.String(globFlag.Name))
 		return nil, results, err
 	default:
-		return nil, nil, fmt.Errorf("cannot parse command line flags: no valid input provided: %s", pipeJoin([]string{bufferFlag.Name, fileFlag.Name, gzipFlag.Name, zipFlag.Name}))
+		return nil, nil, fmt.Errorf(
+			"cannot parse command line flags: no valid input provided: %s",
+			pipeJoin([]string{bufferFlag.Name, fileFlag.Name, gzipFlag.Name, zipFlag.Name}),
+		)
 	}
 }
 
