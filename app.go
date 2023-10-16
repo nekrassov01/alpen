@@ -85,7 +85,7 @@ var (
 func NewApp() *cli.App {
 	return &cli.App{
 		Name:        Name,
-		Usage:       "AWS access log parser",
+		Usage:       "AWS log parser/encoder",
 		Version:     Version,
 		Description: "A cli application for parsing AWS access logs",
 		Action:      func(c *cli.Context) error { return nil },
@@ -140,7 +140,7 @@ func NewApp() *cli.App {
 }
 
 func doS3Action(c *cli.Context) error {
-	fields := []string{
+	return doAction(c, []string{
 		"bucket_owner",
 		"bucket",
 		"time",
@@ -167,16 +167,11 @@ func doS3Action(c *cli.Context) error {
 		"tls_version",
 		"access_point_arn",
 		"acl_required",
-	}
-	patterns := generateS3Patterns()
-	if err := doAction(c, fields, patterns); err != nil {
-		return err
-	}
-	return nil
+	}, generateS3Patterns())
 }
 
 func doCFAction(c *cli.Context) error {
-	fields := []string{
+	return doAction(c, []string{
 		"date",
 		"time",
 		"x_edge_location",
@@ -210,16 +205,11 @@ func doCFAction(c *cli.Context) error {
 		"sc_content_len",
 		"sc_range_start",
 		"sc_range_end",
-	}
-	patterns := generateCFPatterns()
-	if err := doAction(c, fields, patterns); err != nil {
-		return err
-	}
-	return nil
+	}, generateCFPatterns())
 }
 
 func doALBAction(c *cli.Context) error {
-	fields := []string{
+	return doAction(c, []string{
 		"type",
 		"time",
 		"elb",
@@ -249,16 +239,11 @@ func doALBAction(c *cli.Context) error {
 		"target_status_code_list",
 		"classification",
 		"classification_reason",
-	}
-	patterns := generateALBPatterns()
-	if err := doAction(c, fields, patterns); err != nil {
-		return err
-	}
-	return nil
+	}, generateALBPatterns())
 }
 
 func doNLBAction(c *cli.Context) error {
-	fields := []string{
+	return doAction(c, []string{
 		"type",
 		"version",
 		"time",
@@ -281,16 +266,11 @@ func doNLBAction(c *cli.Context) error {
 		"alpn_be_protocol",
 		"alpn_client_preference_list",
 		"tls_connection_creation_time",
-	}
-	patterns := generateNLBPatterns()
-	if err := doAction(c, fields, patterns); err != nil {
-		return err
-	}
-	return nil
+	}, generateNLBPatterns())
 }
 
 func doCLBAction(c *cli.Context) error {
-	fields := []string{
+	return doAction(c, []string{
 		"time",
 		"elb",
 		"client_port",
@@ -306,12 +286,7 @@ func doCLBAction(c *cli.Context) error {
 		"user_agent",
 		"ssl_cipher",
 		"ssl_protocol",
-	}
-	patterns := generateCLBPatterns()
-	if err := doAction(c, fields, patterns); err != nil {
-		return err
-	}
-	return nil
+	}, generateCLBPatterns())
 }
 
 func doAction(c *cli.Context, fields []string, patterns []*regexp.Regexp) error {
@@ -360,7 +335,7 @@ func dispatch(c *cli.Context, p *parser.Parser) (result *parser.Result, results 
 }
 
 func printResult(c *cli.Context, result *parser.Result, results []*parser.Result) {
-	print := func(c *cli.Context, r *parser.Result) {
+	w := func(c *cli.Context, r *parser.Result) {
 		fmt.Println(strings.Join(r.Data, "\n"))
 		if c.Bool(metadataFlag.Name) {
 			fmt.Println(r.Metadata)
@@ -368,10 +343,10 @@ func printResult(c *cli.Context, result *parser.Result, results []*parser.Result
 	}
 	switch {
 	case result != nil && results == nil:
-		print(c, result)
+		w(c, result)
 	case result == nil && results != nil:
 		for _, r := range results {
-			print(c, r)
+			w(c, r)
 		}
 	default:
 	}
@@ -381,10 +356,7 @@ func validateFlags(c *cli.Context) error {
 	if err := isSingle(c, bufferFlag.Name, fileFlag.Name, gzipFlag.Name, zipFlag.Name); err != nil {
 		return err
 	}
-	if err := isValidPair(c, zipFlag.Name, globFlag.Name); err != nil {
-		return err
-	}
-	return nil
+	return isValidPair(c, zipFlag.Name, globFlag.Name)
 }
 
 func isSingle(c *cli.Context, flags ...string) error {
