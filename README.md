@@ -1,6 +1,11 @@
 alpen
 =====
 
+[![CI](https://github.com/nekrassov01/alpen/actions/workflows/ci.yml/badge.svg)](https://github.com/nekrassov01/alpen/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/nekrassov01/alpen)](https://goreportcard.com/report/github.com/nekrassov01/alpen)
+![GitHub](https://img.shields.io/github/license/nekrassov01/alpen)
+![GitHub](https://img.shields.io/github/v/release/nekrassov01/alpen)
+
 alpen is a CLI application for parsing and encoding AWS access logs
 
 Supported
@@ -17,7 +22,7 @@ Usage
 
 ```text
 NAME:
-   alpen - AWS access log parser
+   alpen - AWS log parser/encoder
 
 USAGE:
    alpen [global options] command [command options] [arguments...]
