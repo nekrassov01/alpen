@@ -21,52 +21,80 @@ export GO111MODULE=on
 .PHONY: build
 build: clean
 	go mod tidy
-	go build -ldflags "-X main.Version=$(VERSION) -X main.Revision=$(REVISION)" -o $(BIN)
+	go build -ldflags "-X main.Version=$(VERSION) -X main.Revision=$(REVISION)" -o $(BIN) .
 
 .PHONY: check
-check: test vet golangci-lint govulncheck
+check: test bench vet cover golangci-lint govulncheck
 
 .PHONY: deps
-deps:
+deps: deps-lint deps-govulncheck deps-gobump
+
+.PHONY: deps-lint
+deps-lint:
 ifndef HAS_LINT
 	go install $(BIN_LINT)
 endif
+
+.PHONY: deps-govulncheck
+deps-govulncheck:
 ifndef HAS_VULNCHECK
 	go install $(BIN_GOVULNCHECK)
 endif
+
+.PHONY: deps-gobump
+deps-gobump:
 ifndef HAS_GOBUMP
 	go install $(BIN_GOBUMP)
 endif
-
-.PHONY: golangci-lint
-golangci-lint:
-	golangci-lint run ./... -v --tests
-
-.PHONY: govulncheck
-govulncheck: deps
-	$(GOBIN)/govulncheck ./...
-
-.PHONY: show-version
-show-version: deps
-	$(GOBIN)/gobump show -r .
-
-.PHONY: bump
-bump: deps
-	@gobump up -w .
-
-.PHONY: vet
-vet:
-	go vet ./...
 
 .PHONY: test
 test:
 	go test -race -cover -v ./... -coverprofile=cover.out -covermode=atomic
 
+.PHONY: bench
+bench:
+	go test -bench . -benchmem
+
+.PHONY: vet
+vet:
+	go vet ./...
+
 .PHONY: cover
 cover:
 	go tool cover -html=cover.out -o cover.html
 
+.PHONY: golangci-lint
+golangci-lint: deps-lint
+	golangci-lint run ./... -v --tests
+
+.PHONY: govulncheck
+govulncheck: deps-govulncheck
+	$(GOBIN)/govulncheck -test -json ./...
+
+.PHONY: show-version
+show-version: deps-gobump
+	$(GOBIN)/gobump show -r .
+
+.PHONY: check-git
+ifneq ($(shell git status --porcelain),)
+	$(error git workspace is dirty)
+endif
+ifneq ($(shell git rev-parse --abbrev-ref HEAD),main)
+	$(error current branch is not main)
+endif
+
+.PHONY: publish
+publish: deps-gobump check-git
+	$(GOBIN)/gobump up -w .
+	git commit -am "bump up version to $(VERSION)"
+	git push origin main
+
+.PHONY: release
+release: check-git
+	git tag "v$(VERSION)"
+	git push origin "refs/tags/v$(VERSION)"
+
 .PHONY: clean
 clean:
 	go clean
-	rm -f $(BIN)
+	rm -f $(BIN) cover.out cover.html
