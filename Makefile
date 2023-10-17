@@ -23,6 +23,10 @@ build: clean
 	go mod tidy
 	go build -ldflags "-X main.Version=$(VERSION) -X main.Revision=$(REVISION)" -o $(BIN) .
 
+.PHONY: put
+put: build
+	cp $(BIN) $(GOBIN)/$(BIN)
+
 .PHONY: check
 check: test bench vet cover golangci-lint govulncheck
 
