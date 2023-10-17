@@ -341,10 +341,18 @@ func dispatch(c *cli.Context, p *parser.Parser) (result *parser.Result, results 
 }
 
 func printResult(c *cli.Context, result *parser.Result, results []*parser.Result) {
+	var builder strings.Builder
 	w := func(c *cli.Context, r *parser.Result) {
-		fmt.Println(strings.Join(r.Data, "\n"))
+		for i, data := range r.Data {
+			if i > 0 {
+				builder.WriteRune('\n')
+			}
+			builder.WriteString(data)
+		}
+		builder.WriteRune('\n')
 		if c.Bool(metadataFlag.Name) {
-			fmt.Println(r.Metadata)
+			builder.WriteString(r.Metadata)
+			builder.WriteRune('\n')
 		}
 	}
 	switch {
@@ -356,6 +364,7 @@ func printResult(c *cli.Context, result *parser.Result, results []*parser.Result
 		}
 	default:
 	}
+	fmt.Println(builder.String())
 }
 
 func validateFlags(c *cli.Context) error {
