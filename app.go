@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"regexp"
 	"strings"
@@ -8,6 +9,30 @@ import (
 	"github.com/nekrassov01/access-log-parser"
 	"github.com/urfave/cli/v2"
 )
+
+//go:embed completion/alpen.bash
+var bashCompletion string
+
+//go:embed completion/alpen.zsh
+var zshCompletion string
+
+//go:embed completion/alpen.ps1
+var pwshCompletion string
+
+type Completion int
+
+const (
+	bash Completion = iota
+	zsh
+	pwsh
+)
+
+func (c Completion) String() string {
+	if c >= 0 && int(c) < len(completion) {
+		return completion[c]
+	}
+	return ""
+}
 
 type OutputFormat int
 
@@ -25,6 +50,12 @@ func (o OutputFormat) String() string {
 }
 
 var (
+	completion = []string{
+		"bash",
+		"zsh",
+		"pwsh",
+	}
+
 	outputFormat = []string{
 		"text",
 		"json",
@@ -59,7 +90,7 @@ var (
 		Name:    "output",
 		Aliases: []string{"o"},
 		Usage:   fmt.Sprintf("select output format: %s", pipeJoin(outputFormat)),
-		Value:   Text.String(),
+		Value:   JSON.String(),
 	}
 
 	skipFlag = &cli.IntSliceFlag{
@@ -84,56 +115,71 @@ var (
 
 func NewApp() *cli.App {
 	return &cli.App{
-		Name:        Name,
-		Usage:       "AWS log parser/encoder",
-		Version:     Version,
-		Description: "A cli application for parsing AWS access logs",
-		Action:      func(c *cli.Context) error { return nil },
+		Name:                 Name,
+		Usage:                "AWS log parser/encoder",
+		Version:              Version,
+		Description:          "A cli application for parsing AWS access logs",
+		HideHelpCommand:      true,
+		EnableBashCompletion: true,
+		Action:               doRootAction,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "completion",
+				Aliases: []string{"c"},
+				Usage:   fmt.Sprintf("select a shell to display completion scripts: %s", pipeJoin(completion)),
+				Action:  doCompletion,
+			},
+		},
 		Commands: []*cli.Command{
 			{
-				Name:        "s3",
-				Description: "Parses S3 access logs and converts them to structured formats",
-				Usage:       "Parses S3 access logs",
-				UsageText:   fmt.Sprintf("%s s3", Name),
-				Action:      doS3Action,
-				Flags:       []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
-				Before:      validateFlags,
+				Name:            "s3",
+				Description:     "Parses S3 access logs and converts them to structured formats",
+				Usage:           "Parses S3 access logs",
+				UsageText:       fmt.Sprintf("%s s3", Name),
+				Action:          doS3Action,
+				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
+				Before:          validateFlags,
+				HideHelpCommand: true,
 			},
 			{
-				Name:        "cf",
-				Description: "Parses CloudFront access logs and converts them to structured formats",
-				Usage:       "Parses CloudFront access logs",
-				UsageText:   fmt.Sprintf("%s cf", Name),
-				Action:      doCFAction,
-				Flags:       []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
-				Before:      validateFlags,
+				Name:            "cf",
+				Description:     "Parses CloudFront access logs and converts them to structured formats",
+				Usage:           "Parses CloudFront access logs",
+				UsageText:       fmt.Sprintf("%s cf", Name),
+				Action:          doCFAction,
+				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
+				Before:          validateFlags,
+				HideHelpCommand: true,
 			},
 			{
-				Name:        "alb",
-				Description: "Parses ALB access logs and converts them to structured formats",
-				Usage:       "Parses ALB access logs",
-				UsageText:   fmt.Sprintf("%s alb", Name),
-				Action:      doALBAction,
-				Flags:       []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
-				Before:      validateFlags,
+				Name:            "alb",
+				Description:     "Parses ALB access logs and converts them to structured formats",
+				Usage:           "Parses ALB access logs",
+				UsageText:       fmt.Sprintf("%s alb", Name),
+				Action:          doALBAction,
+				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
+				Before:          validateFlags,
+				HideHelpCommand: true,
 			},
 			{
-				Name:        "nlb",
-				Description: "Parses NLB access logs and converts them to structured formats",
-				Usage:       "Parses NLB access logs",
-				UsageText:   fmt.Sprintf("%s nlb", Name),
-				Action:      doNLBAction,
-				Flags:       []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
-				Before:      validateFlags,
+				Name:            "nlb",
+				Description:     "Parses NLB access logs and converts them to structured formats",
+				Usage:           "Parses NLB access logs",
+				UsageText:       fmt.Sprintf("%s nlb", Name),
+				Action:          doNLBAction,
+				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
+				Before:          validateFlags,
+				HideHelpCommand: true,
 			},
 			{
-				Name:        "clb",
-				Description: "Parses CLB access logs and converts them to structured formats",
-				Usage:       "Parses CLB access logs",
-				UsageText:   fmt.Sprintf("%s clb", Name),
-				Action:      doCLBAction,
-				Flags:       []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
-				Before:      validateFlags,
+				Name:            "clb",
+				Description:     "Parses CLB access logs and converts them to structured formats",
+				Usage:           "Parses CLB access logs",
+				UsageText:       fmt.Sprintf("%s clb", Name),
+				Action:          doCLBAction,
+				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
+				Before:          validateFlags,
+				HideHelpCommand: true,
 			},
 		},
 	}
@@ -365,6 +411,30 @@ func printResult(c *cli.Context, result *parser.Result, results []*parser.Result
 	default:
 	}
 	fmt.Println(builder.String())
+}
+
+func doCompletion(_ *cli.Context, s string) error {
+	switch s {
+	case bash.String():
+		fmt.Println(bashCompletion)
+	case zsh.String():
+		fmt.Println(zshCompletion)
+	case pwsh.String():
+		fmt.Println(pwshCompletion)
+	default:
+		return fmt.Errorf(
+			"cannot parse command line flags: invalid completion shell: allowed values: %s",
+			pipeJoin(completion),
+		)
+	}
+	return nil
+}
+
+func doRootAction(c *cli.Context) error {
+	if c.Args().Len() == 0 && c.NumFlags() == 0 {
+		return fmt.Errorf("cannot parse command line flags: no flag provided")
+	}
+	return nil
 }
 
 func validateFlags(c *cli.Context) error {
