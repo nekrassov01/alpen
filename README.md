@@ -28,22 +28,22 @@ USAGE:
    alpen [global options] command [command options] [arguments...]
 
 VERSION:
-   0.0.0
+   0.0.2
 
 DESCRIPTION:
    A cli application for parsing AWS access logs
 
 COMMANDS:
-   s3       Parses S3 access logs
-   cf       Parses CloudFront access logs
-   alb      Parses ALB access logs
-   nlb      Parses NLB access logs
-   clb      Parses CLB access logs
-   help, h  Shows a list of commands or help for one command
+   s3   Parses S3 access logs
+   cf   Parses CloudFront access logs
+   alb  Parses ALB access logs
+   nlb  Parses NLB access logs
+   clb  Parses CLB access logs
 
 GLOBAL OPTIONS:
-   --help, -h     show help
-   --version, -v  print the version
+   --completion value, -c value  select a shell to display completion scripts: bash|zsh|pwsh
+   --help, -h                    show help
+   --version, -v                 print the version
 ```
 
 ```text
@@ -95,6 +95,19 @@ Download binary from the release page or install it with the following command:
 
 ```sh
 go install github.com/nekrassov01/alpen
+```
+
+Shell completion
+----------------
+
+Supported shells are as follows:
+
+- bash
+- zsh
+- pwsh
+
+```sh
+alpen --completion bash|zsh|pwsh
 ```
 
 Author
