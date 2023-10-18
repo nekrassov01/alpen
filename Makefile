@@ -73,7 +73,7 @@ golangci-lint: deps-lint
 
 .PHONY: govulncheck
 govulncheck: deps-govulncheck
-	$(GOBIN)/govulncheck -test -json ./...
+	$(GOBIN)/govulncheck -test ./...
 
 .PHONY: show-version
 show-version: deps-gobump
