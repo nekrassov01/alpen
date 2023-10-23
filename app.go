@@ -10,14 +10,28 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-//go:embed completion/alpen.bash
-var bashCompletion string
+var (
+	//go:embed completion/alpen.bash
+	bashCompletion string
 
-//go:embed completion/alpen.zsh
-var zshCompletion string
+	//go:embed completion/alpen.zsh
+	zshCompletion string
 
-//go:embed completion/alpen.ps1
-var pwshCompletion string
+	//go:embed completion/alpen.ps1
+	pwshCompletion string
+
+	completion = []string{
+		"bash",
+		"zsh",
+		"pwsh",
+	}
+
+	outputFormat = []string{
+		"text",
+		"json",
+		"pretty-json",
+	}
+)
 
 type Completion int
 
@@ -50,18 +64,6 @@ func (o OutputFormat) String() string {
 }
 
 var (
-	completion = []string{
-		"bash",
-		"zsh",
-		"pwsh",
-	}
-
-	outputFormat = []string{
-		"text",
-		"json",
-		"pretty-json",
-	}
-
 	bufferFlag = &cli.StringFlag{
 		Name:    "buffer",
 		Aliases: []string{"b"},
@@ -351,11 +353,17 @@ func doAction(c *cli.Context, fields []string, patterns []*regexp.Regexp) error 
 func load(c *cli.Context, fields []string, patterns []*regexp.Regexp) (*parser.Parser, error) {
 	switch c.String(outputFlag.Name) {
 	case Text.String():
-		return parser.New(fields, patterns, textLineHandler, textMetadataHandler), nil
+		return parser.New(fields, patterns,
+			parser.WithLineHandler(textLineHandler),
+			parser.WithMetadataHandler(textMetadataHandler),
+		), nil
 	case JSON.String():
-		return parser.New(fields, patterns, nil, nil), nil
+		return parser.New(fields, patterns), nil
 	case PrettyJSON.String():
-		return parser.New(fields, patterns, prettyJSONLineHandler, prettyJSONMetadataHandler), nil
+		return parser.New(fields, patterns,
+			parser.WithLineHandler(prettyJSONLineHandler),
+			parser.WithMetadataHandler(prettyJSONMetadataHandler),
+		), nil
 	default:
 		return nil, fmt.Errorf(
 			"cannot parse command line flags: invalid output format: allowed values: %s",
