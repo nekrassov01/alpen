@@ -28,7 +28,7 @@ USAGE:
    alpen [global options] command [command options] [arguments...]
 
 VERSION:
-   0.0.2
+   0.0.4
 
 DESCRIPTION:
    A cli application for parsing AWS access logs
@@ -61,7 +61,7 @@ OPTIONS:
    --file-path value, -f value                        input from file path
    --gzip-path value, -g value                        input from gzip file path
    --zip-path value, -z value                         input from zip file path
-   --output value, -o value                           select output format: text|json|pretty-json (default: "text")
+   --output value, -o value                           select output format: text|json|pretty-json (default: "json")
    --skip value, -s value [ --skip value, -s value ]  skip records by index
    --metadata, -m                                     enable metadata output (default: false)
    --glob-pattern value, -G value                     filter glob pattern: available for parsing zip only (default: "*")
