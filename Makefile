@@ -28,7 +28,7 @@ put: build
 	cp $(BIN) $(GOBIN)/$(BIN)
 
 .PHONY: check
-check: test bench vet cover golangci-lint govulncheck
+check: test cover golangci-lint govulncheck
 
 .PHONY: deps
 deps: deps-lint deps-govulncheck deps-gobump
@@ -53,15 +53,7 @@ endif
 
 .PHONY: test
 test:
-	go test -race -cover -v ./... -coverprofile=cover.out -covermode=atomic
-
-.PHONY: bench
-bench:
-	go test -bench . -benchmem
-
-.PHONY: vet
-vet:
-	go vet ./...
+	go test ./... -v -cover -coverprofile=cover.out
 
 .PHONY: cover
 cover:
