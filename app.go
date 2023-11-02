@@ -188,158 +188,31 @@ func NewApp() *cli.App {
 }
 
 func doS3Action(c *cli.Context) error {
-	return doAction(c, []string{
-		"bucket_owner",
-		"bucket",
-		"time",
-		"remote_ip",
-		"requester",
-		"request_id",
-		"operation",
-		"key",
-		"request_uri",
-		"http_status",
-		"error_code",
-		"bytes_sent",
-		"object_size",
-		"total_time",
-		"turn_around_time",
-		"referer",
-		"user_agent",
-		"version_id",
-		"host_id",
-		"signature_version",
-		"cipher_suite",
-		"authentication_type",
-		"host_header",
-		"tls_version",
-		"access_point_arn",
-		"acl_required",
-	}, generateS3Patterns())
+	return doAction(c, generateS3Patterns())
 }
 
 func doCFAction(c *cli.Context) error {
-	return doAction(c, []string{
-		"date",
-		"time",
-		"x_edge_location",
-		"sc_bytes",
-		"c_ip",
-		"cs_method",
-		"cs_host",
-		"cs_uri_stem",
-		"sc_status",
-		"cs_referer",
-		"cs_user_agent",
-		"cs_uri_query",
-		"cs_cookie",
-		"x_edge_result_type",
-		"x_edge_request_id",
-		"x_host_header",
-		"cs_protocol",
-		"cs_bytes",
-		"time_taken",
-		"x_forwarded_for",
-		"ssl_protocol",
-		"ssl_cipher",
-		"x_edge_response_result_type",
-		"cs_protocol_version",
-		"fle_status",
-		"fle_encrypted_fields",
-		"c_port",
-		"time_to_first_byte",
-		"x_edge_detailed_result_type",
-		"sc_content_type",
-		"sc_content_len",
-		"sc_range_start",
-		"sc_range_end",
-	}, generateCFPatterns())
+	return doAction(c, generateCFPatterns())
 }
 
 func doALBAction(c *cli.Context) error {
-	return doAction(c, []string{
-		"type",
-		"time",
-		"elb",
-		"client_port",
-		"target_port",
-		"request_processing_time",
-		"target_processing_time",
-		"response_processing_time",
-		"elb_status_code",
-		"target_status_code",
-		"received_bytes",
-		"sent_bytes",
-		"request",
-		"user_agent",
-		"ssl_ciphe",
-		"ssl_protocol",
-		"target_group_arn",
-		"trace_id",
-		"domain_name",
-		"chosen_cert_arn",
-		"matched_rule_priority",
-		"request_creation_time",
-		"actions_executed",
-		"redirect_url",
-		"error_reason",
-		"target_port_list",
-		"target_status_code_list",
-		"classification",
-		"classification_reason",
-	}, generateALBPatterns())
+	return doAction(c, generateALBPatterns())
 }
 
 func doNLBAction(c *cli.Context) error {
-	return doAction(c, []string{
-		"type",
-		"version",
-		"time",
-		"elb",
-		"listener",
-		"client:port",
-		"destination:port",
-		"connection_time",
-		"tls_handshake_time",
-		"received_bytes",
-		"sent_bytes",
-		"incoming_tls_alert",
-		"chosen_cert_arn",
-		"chosen_cert_serial",
-		"tls_cipher",
-		"tls_protocol_version",
-		"tls_named_group",
-		"domain_name",
-		"alpn_fe_protocol",
-		"alpn_be_protocol",
-		"alpn_client_preference_list",
-		"tls_connection_creation_time",
-	}, generateNLBPatterns())
+	return doAction(c, generateNLBPatterns())
 }
 
 func doCLBAction(c *cli.Context) error {
-	return doAction(c, []string{
-		"time",
-		"elb",
-		"client_port",
-		"backend_port",
-		"request_processing_time",
-		"backend_processing_time",
-		"response_processing_time",
-		"elb_status_code",
-		"backend_status_code",
-		"received_bytes",
-		"sent_bytes",
-		"request",
-		"user_agent",
-		"ssl_cipher",
-		"ssl_protocol",
-	}, generateCLBPatterns())
+	return doAction(c, generateCLBPatterns())
 }
 
-func doAction(c *cli.Context, fields []string, patterns []*regexp.Regexp) error {
-	p, err := load(c, fields, patterns)
+func doAction(c *cli.Context, patterns []*regexp.Regexp) error {
+	p, err := newParser(c)
 	if err != nil {
+		return err
+	}
+	if err := p.AddPatterns(patterns); err != nil {
 		return err
 	}
 	result, results, err := dispatch(c, p)
@@ -350,17 +223,17 @@ func doAction(c *cli.Context, fields []string, patterns []*regexp.Regexp) error 
 	return nil
 }
 
-func load(c *cli.Context, fields []string, patterns []*regexp.Regexp) (*parser.Parser, error) {
+func newParser(c *cli.Context) (*parser.Parser, error) {
 	switch c.String(outputFlag.Name) {
 	case Text.String():
-		return parser.New(fields, patterns,
+		return parser.NewParser(
 			parser.WithLineHandler(textLineHandler),
 			parser.WithMetadataHandler(textMetadataHandler),
 		), nil
 	case JSON.String():
-		return parser.New(fields, patterns), nil
+		return parser.NewParser(), nil
 	case PrettyJSON.String():
-		return parser.New(fields, patterns,
+		return parser.NewParser(
 			parser.WithLineHandler(prettyJSONLineHandler),
 			parser.WithMetadataHandler(prettyJSONMetadataHandler),
 		), nil

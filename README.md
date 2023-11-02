@@ -94,7 +94,7 @@ Installation
 Download binary from the release page or install it with the following command:
 
 ```sh
-go install github.com/nekrassov01/alpen
+go install github.com/nekrassov01/alpen@latest
 ```
 
 Shell completion

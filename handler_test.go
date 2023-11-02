@@ -25,7 +25,7 @@ func Test_prettyJSONLineHandler(t *testing.T) {
 		{
 			name: "basic",
 			args: args{
-				matches: []string{"", "value1", "value2"},
+				matches: []string{"value1", "value2"},
 				fields:  []string{"field1", "field2"},
 				index:   1,
 			},
@@ -41,7 +41,7 @@ func Test_prettyJSONLineHandler(t *testing.T) {
 		{
 			name: "invalid json character",
 			args: args{
-				matches: []string{"", "value1", "val\"ue2"},
+				matches: []string{"value1", "val\"ue2"},
 				fields:  []string{"field1", "field2"},
 				index:   2,
 			},
@@ -57,7 +57,7 @@ func Test_prettyJSONLineHandler(t *testing.T) {
 		{
 			name: "more matches than fields",
 			args: args{
-				matches: []string{"", "value1", "value2", "value3"},
+				matches: []string{"value1", "value2", "value3"},
 				fields:  []string{"field1", "field2"},
 				index:   3,
 			},
@@ -73,7 +73,7 @@ func Test_prettyJSONLineHandler(t *testing.T) {
 		{
 			name: "more fields than matches",
 			args: args{
-				matches: []string{"", "value1"},
+				matches: []string{"value1"},
 				fields:  []string{"field1", "field2"},
 				index:   4,
 			},
@@ -233,7 +233,7 @@ func Test_textLineHandler(t *testing.T) {
 		{
 			name: "basic",
 			args: args{
-				matches: []string{"", "value1", "value2"},
+				matches: []string{"value1", "value2"},
 				fields:  []string{"field1", "field2"},
 				index:   1,
 			},
@@ -245,7 +245,7 @@ func Test_textLineHandler(t *testing.T) {
 		{
 			name: "invalid json character",
 			args: args{
-				matches: []string{"", "value1", "val\"ue2"},
+				matches: []string{"value1", "val\"ue2"},
 				fields:  []string{"field1", "field2"},
 				index:   2,
 			},
@@ -257,7 +257,7 @@ func Test_textLineHandler(t *testing.T) {
 		{
 			name: "more matches than fields",
 			args: args{
-				matches: []string{"", "value1", "value2", "value3"},
+				matches: []string{"value1", "value2", "value3"},
 				fields:  []string{"field1", "field2"},
 				index:   3,
 			},
@@ -269,7 +269,7 @@ func Test_textLineHandler(t *testing.T) {
 		{
 			name: "more fields than matches",
 			args: args{
-				matches: []string{"", "value1"},
+				matches: []string{"value1"},
 				fields:  []string{"field1", "field2"},
 				index:   4,
 			},

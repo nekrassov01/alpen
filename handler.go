@@ -36,7 +36,7 @@ func prettyJSON(s string) (string, error) {
 func textLineHandler(matches []string, fields []string, index int) (string, error) {
 	var builder strings.Builder
 	builder.WriteString(fmt.Sprintf("index=%d", index))
-	for i, match := range matches[1:] {
+	for i, match := range matches {
 		if i < len(fields) {
 			builder.WriteRune(' ')
 			builder.WriteString(fmt.Sprintf("%s=\"%s\"", fields[i], strings.ReplaceAll(match, `"`, `\"`)))
