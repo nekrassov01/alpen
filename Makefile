@@ -61,7 +61,7 @@ cover:
 
 .PHONY: golangci-lint
 golangci-lint: deps-lint
-	golangci-lint run ./... -v --tests
+	golangci-lint run ./... -v
 
 .PHONY: govulncheck
 govulncheck: deps-govulncheck
