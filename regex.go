@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -141,11 +142,12 @@ func generateALBPatterns() (patterns []*regexp.Regexp) {
 		`"(?P<actions_executed>[ -~]+)"`,
 		`"(?P<redirect_url>[ -~]+)"`,
 		`"(?P<error_reason>[ -~]+)"`,
-		`"(?P<target_port_list>[ -~]+)"`,
-		`"(?P<target_status_code_list>[ -~]+)"`,
-		`"(?P<classification>[ -~]+)"`,
-		`"(?P<classification_reason>[ -~]+)"`,
+		`(?P<target_port_list>[ -~]+)`,
+		`(?P<target_status_code_list>[ -~]+)`,
+		`(?P<classification>[ -~]+)`,
+		`(?P<classification_reason>[ -~]+)`,
 	}
+	fmt.Println(basePattern)
 	return []*regexp.Regexp{
 		regexp.MustCompile(strings.Join(basePattern, sep)),
 	}

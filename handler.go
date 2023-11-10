@@ -42,7 +42,7 @@ func textLineHandler(matches []string, fields []string, index int) (string, erro
 			builder.WriteString(fmt.Sprintf("%s=\"%s\"", fields[i], strings.ReplaceAll(match, `"`, `\"`)))
 		}
 	}
-	return builder.String(), nil
+	return strings.ReplaceAll(builder.String(), `"\"-\""`, `"-"`), nil
 }
 
 func textMetadataHandler(m *parser.Metadata) (string, error) {
