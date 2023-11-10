@@ -28,7 +28,7 @@ USAGE:
    alpen [global options] command [command options] [arguments...]
 
 VERSION:
-   0.0.4
+   0.0.7
 
 DESCRIPTION:
    A cli application for parsing AWS access logs
@@ -41,7 +41,7 @@ COMMANDS:
    clb  Parses CLB access logs
 
 GLOBAL OPTIONS:
-   --completion value, -c value  select a shell to display completion scripts: bash|zsh|pwsh
+   --completion value, -c value  select a shellCompletion to display completion scripts: bash|zsh|pwsh
    --help, -h                    show help
    --version, -v                 print the version
 ```
@@ -57,7 +57,7 @@ DESCRIPTION:
    Parses S3 access logs and converts them to structured formats
 
 OPTIONS:
-   --buffer value, -b value                           input from buffer
+   --input value, -i value                            input from string
    --file-path value, -f value                        input from file path
    --gzip-path value, -g value                        input from gzip file path
    --zip-path value, -z value                         input from zip file path
