@@ -63,7 +63,7 @@ func (o OutputFormat) String() string {
 
 var (
 	completion string
-	buffer     string
+	input      string
 	file       string
 	gzip       string
 	zip        string
@@ -74,11 +74,11 @@ var (
 )
 
 var (
-	bufferFlag = &cli.StringFlag{
-		Name:        "buffer",
-		Aliases:     []string{"b"},
-		Usage:       "input from buffer",
-		Destination: &buffer,
+	inputFlag = &cli.StringFlag{
+		Name:        "input",
+		Aliases:     []string{"i"},
+		Usage:       "input from string",
+		Destination: &input,
 	}
 
 	fileFlag = &cli.PathFlag{
@@ -158,7 +158,7 @@ func NewApp() *cli.App {
 				Usage:           "Parses S3 access logs",
 				UsageText:       fmt.Sprintf("%s s3", Name),
 				HideHelpCommand: true,
-				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
+				Flags:           []cli.Flag{inputFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
 				Before:          doValidate,
 				Action:          doS3Action,
 			},
@@ -168,7 +168,7 @@ func NewApp() *cli.App {
 				Usage:           "Parses CloudFront access logs",
 				UsageText:       fmt.Sprintf("%s cf", Name),
 				HideHelpCommand: true,
-				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
+				Flags:           []cli.Flag{inputFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
 				Before:          doValidate,
 				Action:          doCFAction,
 			},
@@ -178,7 +178,7 @@ func NewApp() *cli.App {
 				Usage:           "Parses ALB access logs",
 				UsageText:       fmt.Sprintf("%s alb", Name),
 				HideHelpCommand: true,
-				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
+				Flags:           []cli.Flag{inputFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
 				Before:          doValidate,
 				Action:          doALBAction,
 			},
@@ -188,7 +188,7 @@ func NewApp() *cli.App {
 				Usage:           "Parses NLB access logs",
 				UsageText:       fmt.Sprintf("%s nlb", Name),
 				HideHelpCommand: true,
-				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
+				Flags:           []cli.Flag{inputFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
 				Before:          doValidate,
 				Action:          doNLBAction,
 			},
@@ -198,7 +198,7 @@ func NewApp() *cli.App {
 				Usage:           "Parses CLB access logs",
 				UsageText:       fmt.Sprintf("%s clb", Name),
 				HideHelpCommand: true,
-				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
+				Flags:           []cli.Flag{inputFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
 				Before:          doValidate,
 				Action:          doCLBAction,
 			},
@@ -266,8 +266,8 @@ func newParser(c *cli.Context) (*parser.Parser, error) {
 
 func dispatch(c *cli.Context, p *parser.Parser) (result *parser.Result, results []*parser.Result, err error) {
 	switch {
-	case c.IsSet(bufferFlag.Name):
-		result, err = p.ParseString(buffer, skip.Value())
+	case c.IsSet(inputFlag.Name):
+		result, err = p.ParseString(input, skip.Value())
 		return result, nil, err
 	case c.IsSet(fileFlag.Name):
 		result, err = p.ParseFile(file, skip.Value())
@@ -281,7 +281,7 @@ func dispatch(c *cli.Context, p *parser.Parser) (result *parser.Result, results 
 	default:
 		return nil, nil, fmt.Errorf(
 			"cannot parse command line flags: no valid input provided: %s",
-			pipeJoin([]string{bufferFlag.Name, fileFlag.Name, gzipFlag.Name, zipFlag.Name}),
+			pipeJoin([]string{inputFlag.Name, fileFlag.Name, gzipFlag.Name, zipFlag.Name}),
 		)
 	}
 }
@@ -338,7 +338,7 @@ func doRootAction(c *cli.Context) error {
 }
 
 func doValidate(c *cli.Context) error {
-	if err := isSingle(c, bufferFlag.Name, fileFlag.Name, gzipFlag.Name, zipFlag.Name); err != nil {
+	if err := isSingle(c, inputFlag.Name, fileFlag.Name, gzipFlag.Name, zipFlag.Name); err != nil {
 		return err
 	}
 	return isValidPair(c, zipFlag.Name, globFlag.Name)
