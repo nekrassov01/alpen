@@ -10,40 +10,32 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var (
-	//go:embed completion/alpen.bash
-	bashCompletion string
+//go:embed completion/alpen.bash
+var bashCompletion string
 
-	//go:embed completion/alpen.zsh
-	zshCompletion string
+//go:embed completion/alpen.zsh
+var zshCompletion string
 
-	//go:embed completion/alpen.ps1
-	pwshCompletion string
+//go:embed completion/alpen.ps1
+var pwshCompletion string
 
-	completion = []string{
-		"bash",
-		"zsh",
-		"pwsh",
-	}
-
-	outputFormat = []string{
-		"text",
-		"json",
-		"pretty-json",
-	}
-)
-
-type Completion int
+type ShellCompletion int
 
 const (
-	bash Completion = iota
+	bash ShellCompletion = iota
 	zsh
 	pwsh
 )
 
-func (c Completion) String() string {
-	if c >= 0 && int(c) < len(completion) {
-		return completion[c]
+var shellCompletion = []string{
+	"bash",
+	"zsh",
+	"pwsh",
+}
+
+func (s ShellCompletion) String() string {
+	if s >= 0 && int(s) < len(shellCompletion) {
+		return shellCompletion[s]
 	}
 	return ""
 }
@@ -56,6 +48,12 @@ const (
 	PrettyJSON
 )
 
+var outputFormat = []string{
+	"text",
+	"json",
+	"pretty-json",
+}
+
 func (o OutputFormat) String() string {
 	if o >= 0 && int(o) < len(outputFormat) {
 		return outputFormat[o]
@@ -64,54 +62,74 @@ func (o OutputFormat) String() string {
 }
 
 var (
+	completion string
+	buffer     string
+	file       string
+	gzip       string
+	zip        string
+	output     string
+	skip       cli.IntSlice
+	metadata   bool
+	glob       string
+)
+
+var (
 	bufferFlag = &cli.StringFlag{
-		Name:    "buffer",
-		Aliases: []string{"b"},
-		Usage:   "input from buffer",
+		Name:        "buffer",
+		Aliases:     []string{"b"},
+		Usage:       "input from buffer",
+		Destination: &buffer,
 	}
 
-	fileFlag = &cli.StringFlag{
-		Name:    "file-path",
-		Aliases: []string{"f"},
-		Usage:   "input from file path",
+	fileFlag = &cli.PathFlag{
+		Name:        "file-path",
+		Aliases:     []string{"f"},
+		Usage:       "input from file path",
+		Destination: &file,
 	}
 
-	gzipFlag = &cli.StringFlag{
-		Name:    "gzip-path",
-		Aliases: []string{"g"},
-		Usage:   "input from gzip file path",
+	gzipFlag = &cli.PathFlag{
+		Name:        "gzip-path",
+		Aliases:     []string{"g"},
+		Usage:       "input from gzip file path",
+		Destination: &gzip,
 	}
 
-	zipFlag = &cli.StringFlag{
-		Name:    "zip-path",
-		Aliases: []string{"z"},
-		Usage:   "input from zip file path",
+	zipFlag = &cli.PathFlag{
+		Name:        "zip-path",
+		Aliases:     []string{"z"},
+		Usage:       "input from zip file path",
+		Destination: &zip,
 	}
 
 	outputFlag = &cli.StringFlag{
-		Name:    "output",
-		Aliases: []string{"o"},
-		Usage:   fmt.Sprintf("select output format: %s", pipeJoin(outputFormat)),
-		Value:   JSON.String(),
+		Name:        "output",
+		Aliases:     []string{"o"},
+		Usage:       fmt.Sprintf("select output format: %s", pipeJoin(outputFormat)),
+		Destination: &output,
+		Value:       JSON.String(),
 	}
 
 	skipFlag = &cli.IntSliceFlag{
-		Name:    "skip",
-		Aliases: []string{"s"},
-		Usage:   "skip records by index",
+		Name:        "skip",
+		Aliases:     []string{"s"},
+		Usage:       "skip records by index",
+		Destination: &skip,
 	}
 
 	metadataFlag = &cli.BoolFlag{
-		Name:    "metadata",
-		Aliases: []string{"m"},
-		Usage:   "enable metadata output",
+		Name:        "metadata",
+		Aliases:     []string{"m"},
+		Usage:       "enable metadata output",
+		Destination: &metadata,
 	}
 
 	globFlag = &cli.StringFlag{
-		Name:    "glob-pattern",
-		Aliases: []string{"G"},
-		Usage:   "filter glob pattern: available for parsing zip only",
-		Value:   "*",
+		Name:        "glob-pattern",
+		Aliases:     []string{"G"},
+		Usage:       "filter glob pattern: available for parsing zip only",
+		Destination: &glob,
+		Value:       "*",
 	}
 )
 
@@ -126,10 +144,11 @@ func NewApp() *cli.App {
 		Action:               doRootAction,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    "completion",
-				Aliases: []string{"c"},
-				Usage:   fmt.Sprintf("select a shell to display completion scripts: %s", pipeJoin(completion)),
-				Action:  doCompletion,
+				Name:        "completion",
+				Aliases:     []string{"c"},
+				Usage:       fmt.Sprintf("select a shellCompletion to display completion scripts: %s", pipeJoin(shellCompletion)),
+				Destination: &completion,
+				Action:      doCompletion,
 			},
 		},
 		Commands: []*cli.Command{
@@ -138,50 +157,50 @@ func NewApp() *cli.App {
 				Description:     "Parses S3 access logs and converts them to structured formats",
 				Usage:           "Parses S3 access logs",
 				UsageText:       fmt.Sprintf("%s s3", Name),
-				Action:          doS3Action,
-				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
-				Before:          validateFlags,
 				HideHelpCommand: true,
+				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
+				Before:          doValidate,
+				Action:          doS3Action,
 			},
 			{
 				Name:            "cf",
 				Description:     "Parses CloudFront access logs and converts them to structured formats",
 				Usage:           "Parses CloudFront access logs",
 				UsageText:       fmt.Sprintf("%s cf", Name),
-				Action:          doCFAction,
-				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
-				Before:          validateFlags,
 				HideHelpCommand: true,
+				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
+				Before:          doValidate,
+				Action:          doCFAction,
 			},
 			{
 				Name:            "alb",
 				Description:     "Parses ALB access logs and converts them to structured formats",
 				Usage:           "Parses ALB access logs",
 				UsageText:       fmt.Sprintf("%s alb", Name),
-				Action:          doALBAction,
-				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
-				Before:          validateFlags,
 				HideHelpCommand: true,
+				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
+				Before:          doValidate,
+				Action:          doALBAction,
 			},
 			{
 				Name:            "nlb",
 				Description:     "Parses NLB access logs and converts them to structured formats",
 				Usage:           "Parses NLB access logs",
 				UsageText:       fmt.Sprintf("%s nlb", Name),
-				Action:          doNLBAction,
-				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
-				Before:          validateFlags,
 				HideHelpCommand: true,
+				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
+				Before:          doValidate,
+				Action:          doNLBAction,
 			},
 			{
 				Name:            "clb",
 				Description:     "Parses CLB access logs and converts them to structured formats",
 				Usage:           "Parses CLB access logs",
 				UsageText:       fmt.Sprintf("%s clb", Name),
-				Action:          doCLBAction,
-				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
-				Before:          validateFlags,
 				HideHelpCommand: true,
+				Flags:           []cli.Flag{bufferFlag, fileFlag, gzipFlag, zipFlag, outputFlag, skipFlag, metadataFlag, globFlag},
+				Before:          doValidate,
+				Action:          doCLBAction,
 			},
 		},
 	}
@@ -219,7 +238,7 @@ func doAction(c *cli.Context, patterns []*regexp.Regexp) error {
 	if err != nil {
 		return err
 	}
-	printResult(c, result, results)
+	printResult(result, results)
 	return nil
 }
 
@@ -248,16 +267,16 @@ func newParser(c *cli.Context) (*parser.Parser, error) {
 func dispatch(c *cli.Context, p *parser.Parser) (result *parser.Result, results []*parser.Result, err error) {
 	switch {
 	case c.IsSet(bufferFlag.Name):
-		result, err = p.ParseString(c.String(bufferFlag.Name), c.IntSlice(skipFlag.Name))
+		result, err = p.ParseString(buffer, skip.Value())
 		return result, nil, err
 	case c.IsSet(fileFlag.Name):
-		result, err = p.ParseFile(c.String(fileFlag.Name), c.IntSlice(skipFlag.Name))
+		result, err = p.ParseFile(file, skip.Value())
 		return result, nil, err
 	case c.IsSet(gzipFlag.Name):
-		result, err = p.ParseGzip(c.String(gzipFlag.Name), c.IntSlice(skipFlag.Name))
+		result, err = p.ParseGzip(gzip, skip.Value())
 		return result, nil, err
 	case c.IsSet(zipFlag.Name):
-		results, err = p.ParseZipEntries(c.String(zipFlag.Name), c.IntSlice(skipFlag.Name), c.String(globFlag.Name))
+		results, err = p.ParseZipEntries(zip, skip.Value(), glob)
 		return nil, results, err
 	default:
 		return nil, nil, fmt.Errorf(
@@ -267,9 +286,9 @@ func dispatch(c *cli.Context, p *parser.Parser) (result *parser.Result, results 
 	}
 }
 
-func printResult(c *cli.Context, result *parser.Result, results []*parser.Result) {
+func printResult(result *parser.Result, results []*parser.Result) {
 	var builder strings.Builder
-	w := func(c *cli.Context, r *parser.Result) {
+	w := func(r *parser.Result) {
 		for i, data := range r.Data {
 			if i > 0 {
 				builder.WriteRune('\n')
@@ -277,17 +296,17 @@ func printResult(c *cli.Context, result *parser.Result, results []*parser.Result
 			builder.WriteString(data)
 		}
 		builder.WriteRune('\n')
-		if c.Bool(metadataFlag.Name) {
+		if metadata {
 			builder.WriteString(r.Metadata)
 			builder.WriteRune('\n')
 		}
 	}
 	switch {
 	case result != nil && results == nil:
-		w(c, result)
+		w(result)
 	case result == nil && results != nil:
 		for _, r := range results {
-			w(c, r)
+			w(r)
 		}
 	default:
 	}
@@ -304,8 +323,8 @@ func doCompletion(_ *cli.Context, s string) error {
 		fmt.Println(pwshCompletion)
 	default:
 		return fmt.Errorf(
-			"cannot parse command line flags: invalid completion shell: allowed values: %s",
-			pipeJoin(completion),
+			"cannot parse command line flags: invalid completion shellCompletion: allowed values: %s",
+			pipeJoin(shellCompletion),
 		)
 	}
 	return nil
@@ -318,7 +337,7 @@ func doRootAction(c *cli.Context) error {
 	return nil
 }
 
-func validateFlags(c *cli.Context) error {
+func doValidate(c *cli.Context) error {
 	if err := isSingle(c, bufferFlag.Name, fileFlag.Name, gzipFlag.Name, zipFlag.Name); err != nil {
 		return err
 	}
