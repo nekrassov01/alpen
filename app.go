@@ -146,7 +146,7 @@ func NewApp() *cli.App {
 			&cli.StringFlag{
 				Name:        "completion",
 				Aliases:     []string{"c"},
-				Usage:       fmt.Sprintf("select a shellCompletion to display completion scripts: %s", pipeJoin(shellCompletion)),
+				Usage:       fmt.Sprintf("select a shell to display completion scripts: %s", pipeJoin(shellCompletion)),
 				Destination: &completion,
 				Action:      doCompletion,
 			},
