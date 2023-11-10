@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 )
@@ -147,7 +146,6 @@ func generateALBPatterns() (patterns []*regexp.Regexp) {
 		`(?P<classification>[ -~]+)`,
 		`(?P<classification_reason>[ -~]+)`,
 	}
-	fmt.Println(basePattern)
 	return []*regexp.Regexp{
 		regexp.MustCompile(strings.Join(basePattern, sep)),
 	}
