@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/nekrassov01/access-log-parser"
@@ -35,14 +36,28 @@ func prettyJSON(s string) (string, error) {
 
 func textLineHandler(matches []string, fields []string, index int) (string, error) {
 	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("index=%d", index))
+	builder.WriteString("index=")
+	builder.WriteString(strconv.Itoa(index))
 	for i, match := range matches {
 		if i < len(fields) {
-			builder.WriteRune(' ')
-			builder.WriteString(fmt.Sprintf("%s=\"%s\"", fields[i], strings.ReplaceAll(match, `"`, `\"`)))
+			builder.WriteString(" ")
+			builder.WriteString(fields[i])
+			builder.WriteString(`="`)
+			if match == "\"-\"" {
+				builder.WriteString("-")
+			} else {
+				for _, m := range match {
+					if m == '"' {
+						builder.WriteString(`\"`)
+					} else {
+						builder.WriteRune(m)
+					}
+				}
+			}
+			builder.WriteString(`"`)
 		}
 	}
-	return strings.ReplaceAll(builder.String(), `"\"-\""`, `"-"`), nil
+	return builder.String(), nil
 }
 
 func textMetadataHandler(m *parser.Metadata) (string, error) {
