@@ -41,7 +41,7 @@ COMMANDS:
    clb  Parses CLB access logs
 
 GLOBAL OPTIONS:
-   --completion value, -c value  select a shellCompletion to display completion scripts: bash|zsh|pwsh
+   --completion value, -c value  select a shell to display completion scripts: bash|zsh|pwsh
    --help, -h                    show help
    --version, -v                 print the version
 ```
