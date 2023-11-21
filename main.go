@@ -12,8 +12,8 @@ const (
 )
 
 func main() {
-	app := NewApp()
-	if err := app.Run(os.Args); err != nil {
+	app := newApp()
+	if err := app.run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
