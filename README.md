@@ -6,11 +6,13 @@ alpen
 ![GitHub](https://img.shields.io/github/license/nekrassov01/alpen)
 ![GitHub](https://img.shields.io/github/v/release/nekrassov01/alpen)
 
-alpen is a CLI application for parsing and encoding AWS access logs
+alpen is a CLI application for parsing and encoding various access logs
 
 Supported
 ---------
 
+- Apache common/combined log format
+- Apache common/combined log format with virtual host
 - Amazon S3
 - Amazon CloudFront
 - Application Load Balancer
@@ -22,23 +24,25 @@ Usage
 
 ```text
 NAME:
-   alpen - AWS log parser/encoder
+   alpen - Access log parser/encoder CLI
 
 USAGE:
    alpen [global options] command [command options] [arguments...]
 
 VERSION:
-   0.0.7
+   0.0.11
 
 DESCRIPTION:
-   A cli application for parsing AWS access logs
+   A cli application for parsing various access logs
 
 COMMANDS:
-   s3   Parses S3 access logs
-   cf   Parses CloudFront access logs
-   alb  Parses ALB access logs
-   nlb  Parses NLB access logs
-   clb  Parses CLB access logs
+   clf   Parses apache common/combined log format
+   clfv  Parses apache common/combined log format with vhost
+   s3    Parses S3 access logs
+   cf    Parses CloudFront access logs
+   alb   Parses ALB access logs
+   nlb   Parses NLB access logs
+   clb   Parses CLB access logs
 
 GLOBAL OPTIONS:
    --completion value, -c value  select a shell to display completion scripts: bash|zsh|pwsh

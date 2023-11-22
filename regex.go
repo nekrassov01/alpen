@@ -5,6 +5,61 @@ import (
 	"strings"
 )
 
+func generateApacheCLFPatterns() []*regexp.Regexp {
+	seps := []string{" ", "\t"}
+	basePattern := []string{
+		`^(?P<remote_host>\S+)`,
+		`(?P<remote_logname>\S+)`,
+		`(?P<remote_user>[\S ]+)`,
+		`(?P<datetime>\[[^\]]+\])`,
+		`\"(?P<method>[A-Z]+) (?P<request_uri>[^ \"]+) (?P<protocol>HTTP/[0-9.]+)\"`,
+		`(?P<status>[0-9]{3})`,
+		`(?P<size>[0-9]+|-)`,
+	}
+	combines := [][]string{
+		{
+			`"(?P<referer>[^\"]*)"`,
+			`"(?P<user_agent>[^\"]*)"`,
+		},
+		{}, // for basePattern
+	}
+	patterns := make([]*regexp.Regexp, 0, len(combines)*len(seps))
+	for _, sep := range seps {
+		for _, combine := range combines {
+			patterns = append(patterns, regexp.MustCompile(strings.Join(append(basePattern, combine...), sep)))
+		}
+	}
+	return patterns
+}
+
+func generateApacheCLFWithVHostPatterns() []*regexp.Regexp {
+	seps := []string{" ", "\t"}
+	basePattern := []string{
+		`^(?P<virtual_host>\S+)`,
+		`(?P<remote_host>\S+)`,
+		`(?P<remote_logname>\S+)`,
+		`(?P<remote_user>[\S ]+)`,
+		`(?P<datetime>\[[^\]]+\])`,
+		`\"(?P<method>[A-Z]+) (?P<request_uri>[^ \"]+) (?P<protocol>HTTP/[0-9.]+)\"`,
+		`(?P<status>[0-9]{3})`,
+		`(?P<size>[0-9]+|-)`,
+	}
+	combines := [][]string{
+		{
+			`"(?P<referer>[^\"]*)"`,
+			`"(?P<user_agent>[^\"]*)"`,
+		},
+		{}, // for basePattern
+	}
+	patterns := make([]*regexp.Regexp, 0, len(combines)*len(seps))
+	for _, sep := range seps {
+		for _, combine := range combines {
+			patterns = append(patterns, regexp.MustCompile(strings.Join(append(basePattern, combine...), sep)))
+		}
+	}
+	return patterns
+}
+
 func generateS3Patterns() (patterns []*regexp.Regexp) {
 	sep := " "
 	basePattern := []string{
@@ -23,8 +78,8 @@ func generateS3Patterns() (patterns []*regexp.Regexp) {
 		`(?P<object_size>[\d\-.]+)`,
 		`(?P<total_time>[\d\-.]+)`,
 		`(?P<turn_around_time>[\d\-.]+)`,
-		`"(?P<referer>[ -~]+)"`,
-		`"(?P<user_agent>[ -~]+)"`,
+		`"(?P<referer>[^\"]*)"`,
+		`"(?P<user_agent>[^\"]*)"`,
 		`(?P<version_id>[!-~]+)`,
 	}
 	additions := [][]string{
@@ -83,8 +138,8 @@ func generateCFPatterns() (patterns []*regexp.Regexp) {
 		`(?P<cs_host>[ -~]+)`,
 		`(?P<cs_uri_stem>[ -~]+)`,
 		`(?P<sc_status>\d{1,3}|-)`,
-		`(?P<cs_referer>[ -~]+)`,
-		`(?P<cs_user_agent>[ -~]+)`,
+		`(?P<cs_referer>[^\"]*)`,
+		`(?P<cs_user_agent>[^\"]*)`,
 		`(?P<cs_uri_query>[ -~]+)`,
 		`(?P<cs_cookie>\S+)`,
 		`(?P<x_edge_result_type>[ -~]+)`,
@@ -113,7 +168,7 @@ func generateCFPatterns() (patterns []*regexp.Regexp) {
 	}
 }
 
-func generateALBPatterns() (patterns []*regexp.Regexp) {
+func generateALBPatterns() []*regexp.Regexp {
 	sep := " "
 	basePattern := []string{
 		`^(?P<type>[!-~]+)`,
@@ -129,7 +184,7 @@ func generateALBPatterns() (patterns []*regexp.Regexp) {
 		`(?P<received_bytes>[\d\-.]+)`,
 		`(?P<sent_bytes>[\d\-.]+)`,
 		`"(?P<request>[ -~]+)"`,
-		`"(?P<user_agent>[ -~]+)"`,
+		`"(?P<user_agent>[^\"]*)"`,
 		`(?P<ssl_cipher>[!-~]+)`,
 		`(?P<ssl_protocol>[!-~]+)`,
 		`(?P<target_group_arn>[!-~]+)`,
@@ -151,7 +206,7 @@ func generateALBPatterns() (patterns []*regexp.Regexp) {
 	}
 }
 
-func generateNLBPatterns() (patterns []*regexp.Regexp) {
+func generateNLBPatterns() []*regexp.Regexp {
 	sep := " "
 	basePattern := []string{
 		`^(?P<type>[!-~]+)`,
@@ -182,7 +237,7 @@ func generateNLBPatterns() (patterns []*regexp.Regexp) {
 	}
 }
 
-func generateCLBPatterns() (patterns []*regexp.Regexp) {
+func generateCLBPatterns() []*regexp.Regexp {
 	sep := " "
 	basePattern := []string{
 		`^(?P<time>[!-~]+)`,
@@ -200,13 +255,13 @@ func generateCLBPatterns() (patterns []*regexp.Regexp) {
 	}
 	additions := [][]string{
 		{
-			`"(?P<user_agent>[ -~]+)"`,
+			`"(?P<user_agent>[^\"]*)"`,
 			`(?P<ssl_cipher>[!-~]+)`,
 			`(?P<ssl_protocol>[!-~]+)`,
 		},
 		{}, // for basePattern
 	}
-	patterns = make([]*regexp.Regexp, len(additions))
+	patterns := make([]*regexp.Regexp, len(additions))
 	for i, addition := range additions {
 		patterns[i] = regexp.MustCompile(strings.Join(append(basePattern, addition...), sep))
 	}

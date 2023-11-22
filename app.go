@@ -162,14 +162,34 @@ func newApp() *app {
 	}
 	a.cli = &cli.App{
 		Name:                 Name,
-		Usage:                "AWS log parser/encoder",
+		Usage:                "Access log parser/encoder CLI",
 		Version:              Version,
-		Description:          "A cli application for parsing AWS access logs",
+		Description:          "A cli application for parsing various access logs",
 		HideHelpCommand:      true,
 		EnableBashCompletion: true,
 		Action:               a.doRootAction,
 		Flags:                []cli.Flag{a.flag.completion},
 		Commands: []*cli.Command{
+			{
+				Name:            "clf",
+				Description:     "Parses apache common/combined log format and converts them to structured formats",
+				Usage:           "Parses apache common/combined log format",
+				UsageText:       fmt.Sprintf("%s clf", Name),
+				HideHelpCommand: true,
+				Flags:           flags,
+				Before:          a.doValidate,
+				Action:          a.doApacheCLFAction,
+			},
+			{
+				Name:            "clfv",
+				Description:     "Parses apache common/combined log format with vhost and converts them to structured formats",
+				Usage:           "Parses apache common/combined log format with vhost",
+				UsageText:       fmt.Sprintf("%s clfv", Name),
+				HideHelpCommand: true,
+				Flags:           flags,
+				Before:          a.doValidate,
+				Action:          a.doApacheCLFWithVHostAction,
+			},
 			{
 				Name:            "s3",
 				Description:     "Parses S3 access logs and converts them to structured formats",
@@ -227,6 +247,14 @@ func newApp() *app {
 
 func (a *app) run() error {
 	return a.cli.Run(os.Args)
+}
+
+func (a *app) doApacheCLFAction(c *cli.Context) error {
+	return a.doAction(c, generateApacheCLFPatterns())
+}
+
+func (a *app) doApacheCLFWithVHostAction(c *cli.Context) error {
+	return a.doAction(c, generateApacheCLFWithVHostPatterns())
 }
 
 func (a *app) doS3Action(c *cli.Context) error {
