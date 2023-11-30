@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/nekrassov01/access-log-parser"
@@ -44,15 +43,17 @@ func (s shell) String() string {
 type format int
 
 const (
-	Text format = iota
-	JSON
+	JSON format = iota
 	PrettyJSON
+	Text
+	LTSV
 )
 
 var formats = []string{
-	"text",
 	"json",
 	"pretty-json",
+	"text",
+	"ltsv",
 }
 
 func (f format) String() string {
@@ -178,7 +179,7 @@ func newApp() *app {
 				HideHelpCommand: true,
 				Flags:           flags,
 				Before:          a.doValidate,
-				Action:          a.doApacheCLFAction,
+				Action:          a.doCLFAction,
 			},
 			{
 				Name:            "clfv",
@@ -188,7 +189,7 @@ func newApp() *app {
 				HideHelpCommand: true,
 				Flags:           flags,
 				Before:          a.doValidate,
-				Action:          a.doApacheCLFWithVHostAction,
+				Action:          a.doCLFVAction,
 			},
 			{
 				Name:            "s3",
@@ -240,6 +241,16 @@ func newApp() *app {
 				Before:          a.doValidate,
 				Action:          a.doCLBAction,
 			},
+			{
+				Name:            "ltsv",
+				Description:     "Parses LTSV format logs and converts them to other structured formats",
+				Usage:           "Parses LTSV format logs",
+				UsageText:       fmt.Sprintf("%s ltsv", Name),
+				HideHelpCommand: true,
+				Flags:           flags,
+				Before:          a.doValidate,
+				Action:          a.doLTSVAction,
+			},
 		},
 	}
 	return &a
@@ -249,42 +260,92 @@ func (a *app) run() error {
 	return a.cli.Run(os.Args)
 }
 
-func (a *app) doApacheCLFAction(c *cli.Context) error {
-	return a.doAction(c, generateApacheCLFPatterns())
-}
-
-func (a *app) doApacheCLFWithVHostAction(c *cli.Context) error {
-	return a.doAction(c, generateApacheCLFWithVHostPatterns())
-}
-
-func (a *app) doS3Action(c *cli.Context) error {
-	return a.doAction(c, generateS3Patterns())
-}
-
-func (a *app) doCFAction(c *cli.Context) error {
-	return a.doAction(c, generateCFPatterns())
-}
-
-func (a *app) doALBAction(c *cli.Context) error {
-	return a.doAction(c, generateALBPatterns())
-}
-
-func (a *app) doNLBAction(c *cli.Context) error {
-	return a.doAction(c, generateNLBPatterns())
-}
-
-func (a *app) doCLBAction(c *cli.Context) error {
-	return a.doAction(c, generateCLBPatterns())
-}
-
-func (a *app) doAction(c *cli.Context, patterns []*regexp.Regexp) error {
-	p, err := a.newParser(c)
+func (a *app) doCLFAction(c *cli.Context) error {
+	p, err := a.newParser(c, parser.NewApacheCLFRegexParser())
 	if err != nil {
 		return err
 	}
-	if err := p.AddPatterns(patterns); err != nil {
+	return a.out(c, p)
+}
+
+func (a *app) doCLFVAction(c *cli.Context) error {
+	p, err := a.newParser(c, parser.NewApacheCLFWithVHostRegexParser())
+	if err != nil {
 		return err
 	}
+	return a.out(c, p)
+}
+
+func (a *app) doS3Action(c *cli.Context) error {
+	p, err := a.newParser(c, parser.NewS3RegexParser())
+	if err != nil {
+		return err
+	}
+	return a.out(c, p)
+}
+
+func (a *app) doCFAction(c *cli.Context) error {
+	p, err := a.newParser(c, parser.NewCFRegexParser())
+	if err != nil {
+		return err
+	}
+	return a.out(c, p)
+}
+
+func (a *app) doALBAction(c *cli.Context) error {
+	p, err := a.newParser(c, parser.NewALBRegexParser())
+	if err != nil {
+		return err
+	}
+	return a.out(c, p)
+}
+
+func (a *app) doNLBAction(c *cli.Context) error {
+	p, err := a.newParser(c, parser.NewNLBRegexParser())
+	if err != nil {
+		return err
+	}
+	return a.out(c, p)
+}
+
+func (a *app) doCLBAction(c *cli.Context) error {
+	p, err := a.newParser(c, parser.NewCLBRegexParser())
+	if err != nil {
+		return err
+	}
+	return a.out(c, p)
+}
+
+func (a *app) doLTSVAction(c *cli.Context) error {
+	p, err := a.newParser(c, parser.NewLTSVParser())
+	if err != nil {
+		return err
+	}
+	return a.out(c, p)
+}
+
+func (a *app) newParser(c *cli.Context, p parser.Parser) (parser.Parser, error) {
+	switch c.String(a.flag.output.Name) {
+	case JSON.String():
+	case PrettyJSON.String():
+		p.SetLineHandler(parser.PrettyJSONLineHandler)
+		p.SetMetadataHandler(parser.PrettyJSONMetadataHandler)
+	case Text.String():
+		p.SetLineHandler(parser.KeyValuePairLineHandler)
+		p.SetMetadataHandler(parser.KeyValuePairMetadataHandler)
+	case LTSV.String():
+		p.SetLineHandler(parser.LTSVLineHandler)
+		p.SetMetadataHandler(parser.LTSVMetadataHandler)
+	default:
+		return nil, fmt.Errorf(
+			"cannot parse command line flags: invalid output format: allowed values: %s",
+			pipeJoin(formats),
+		)
+	}
+	return p, nil
+}
+
+func (a *app) out(c *cli.Context, p parser.Parser) error {
 	result, results, err := a.dispatch(c, p)
 	if err != nil {
 		return err
@@ -293,29 +354,7 @@ func (a *app) doAction(c *cli.Context, patterns []*regexp.Regexp) error {
 	return nil
 }
 
-func (a *app) newParser(c *cli.Context) (*parser.Parser, error) {
-	switch c.String(a.flag.output.Name) {
-	case Text.String():
-		return parser.NewParser(
-			parser.WithLineHandler(textLineHandler),
-			parser.WithMetadataHandler(textMetadataHandler),
-		), nil
-	case JSON.String():
-		return parser.NewParser(), nil
-	case PrettyJSON.String():
-		return parser.NewParser(
-			parser.WithLineHandler(prettyJSONLineHandler),
-			parser.WithMetadataHandler(prettyJSONMetadataHandler),
-		), nil
-	default:
-		return nil, fmt.Errorf(
-			"cannot parse command line flags: invalid output format: allowed values: %s",
-			pipeJoin(formats),
-		)
-	}
-}
-
-func (a *app) dispatch(c *cli.Context, p *parser.Parser) (result *parser.Result, results []*parser.Result, err error) {
+func (a *app) dispatch(c *cli.Context, p parser.Parser) (result *parser.Result, results []*parser.Result, err error) {
 	switch {
 	case c.IsSet(a.flag.input.Name):
 		result, err = p.ParseString(a.destination.input, a.destination.skip.Value())
