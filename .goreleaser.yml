@@ -39,3 +39,13 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+brews:
+  - repository:
+      owner: nekrassov01
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    description: "Access log parser/encoder CLI"
+    homepage: "https://github.com/nekrassov01/alpen"
+    license: "MIT"
+    folder: Formula
