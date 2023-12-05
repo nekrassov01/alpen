@@ -78,6 +78,7 @@ type destination struct {
 	output     string
 	skip       cli.IntSlice
 	metadata   bool
+	lineNum    bool
 	glob       string
 }
 
@@ -90,6 +91,7 @@ type flag struct {
 	output     *cli.StringFlag
 	skip       *cli.IntSliceFlag
 	metadata   *cli.BoolFlag
+	lineNum    *cli.BoolFlag
 	glob       *cli.StringFlag
 }
 
@@ -144,6 +146,12 @@ func newApp() *app {
 		Usage:       "enable metadata output",
 		Destination: &a.destination.metadata,
 	}
+	a.flag.lineNum = &cli.BoolFlag{
+		Name:        "line-number",
+		Aliases:     []string{"l"},
+		Usage:       "set line number at the beginning of the line",
+		Destination: &a.destination.lineNum,
+	}
 	a.flag.glob = &cli.StringFlag{
 		Name:        "glob-pattern",
 		Aliases:     []string{"G"},
@@ -159,6 +167,7 @@ func newApp() *app {
 		a.flag.output,
 		a.flag.skip,
 		a.flag.metadata,
+		a.flag.lineNum,
 		a.flag.glob,
 	}
 	a.cli = &cli.App{
@@ -357,16 +366,33 @@ func (a *app) out(c *cli.Context, p parser.Parser) error {
 func (a *app) dispatch(c *cli.Context, p parser.Parser) (result *parser.Result, results []*parser.Result, err error) {
 	switch {
 	case c.IsSet(a.flag.input.Name):
-		result, err = p.ParseString(a.destination.input, a.destination.skip.Value())
+		result, err = p.ParseString(
+			a.destination.input,
+			a.destination.skip.Value(),
+			a.destination.lineNum,
+		)
 		return result, nil, err
 	case c.IsSet(a.flag.file.Name):
-		result, err = p.ParseFile(a.destination.file, a.destination.skip.Value())
+		result, err = p.ParseFile(
+			a.destination.file,
+			a.destination.skip.Value(),
+			a.destination.lineNum,
+		)
 		return result, nil, err
 	case c.IsSet(a.flag.gzip.Name):
-		result, err = p.ParseGzip(a.destination.gzip, a.destination.skip.Value())
+		result, err = p.ParseGzip(
+			a.destination.gzip,
+			a.destination.skip.Value(),
+			a.destination.lineNum,
+		)
 		return result, nil, err
 	case c.IsSet(a.flag.zip.Name):
-		results, err = p.ParseZipEntries(a.destination.zip, a.destination.skip.Value(), a.destination.glob)
+		results, err = p.ParseZipEntries(
+			a.destination.zip,
+			a.destination.skip.Value(),
+			a.destination.lineNum,
+			a.destination.glob,
+		)
 		return nil, results, err
 	default:
 		return nil, nil, fmt.Errorf(

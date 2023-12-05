@@ -1,7 +1,7 @@
 github.com/cpuguy83/go-md2man/v2 v2.0.2 h1:p1EgwI/C7NhT0JmVkwCD2ZBK8j4aeHQX2pMHHBfMQ6w=
 github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
-github.com/nekrassov01/access-log-parser v0.0.11 h1:nhlRt9GqYfwi1YQ/UaiH5w0LRWWeYqVQBePjmhJYxFo=
-github.com/nekrassov01/access-log-parser v0.0.11/go.mod h1:JTLHNxuWs0eOSFPIcQ8YClAYIwVtkvXGYkQALEYSvlg=
+github.com/nekrassov01/access-log-parser v0.0.13 h1:Vw9e9nCss1tV3Koq+dNVO4NcSseIJkm54iMrUfiOxYA=
+github.com/nekrassov01/access-log-parser v0.0.13/go.mod h1:JTLHNxuWs0eOSFPIcQ8YClAYIwVtkvXGYkQALEYSvlg=
 github.com/russross/blackfriday/v2 v2.1.0 h1:JIOH55/0cWyOuilr9/qlrm0BSXldqnqwMsf35Ld67mk=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/urfave/cli/v2 v2.25.7 h1:VAzn5oq403l5pHjc4OhD54+XGO9cdKVL/7lDjF+iKUs=
