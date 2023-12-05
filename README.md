@@ -31,7 +31,7 @@ USAGE:
    alpen [global options] command [command options] [arguments...]
 
 VERSION:
-   0.0.12
+   0.0.16
 
 DESCRIPTION:
    A cli application for parsing various access logs
@@ -70,6 +70,7 @@ OPTIONS:
    --output value, -o value                           select output format: json|pretty-json|text|ltsv (default: "json")
    --skip value, -s value [ --skip value, -s value ]  skip records by index
    --metadata, -m                                     enable metadata output (default: false)
+   --line-number, -l                                  set line number at the beginning of the line (default: false)
    --glob-pattern value, -G value                     filter glob pattern: available for parsing zip only (default: "*")
    --help, -h                                         show help
 ```
@@ -80,6 +81,9 @@ Example
 ```sh
 # Read and convert s3 logs from file and convert to default NDJSON format
 alpen s3 -f "sample_s3.log"
+
+# Set line number at the beginning of line, like "index": "n"
+alpen s3 -f "sample_s3.log" -l
 
 # Read s3 logs from file and convert to pretty NDJSON, also output metadata
 alpen s3 -f "sample_s3.log" -o pretty-json -m
