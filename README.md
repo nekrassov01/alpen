@@ -19,6 +19,7 @@ Supported
 - AWS Network Load Balancer access log format
 - AWS Classic Load Balancer access log format
 - LTSV format
+- TSV format
 
 Usage
 -----
@@ -67,10 +68,11 @@ OPTIONS:
    --file-path value, -f value                        input from file path
    --gzip-path value, -g value                        input from gzip file path
    --zip-path value, -z value                         input from zip file path
-   --output value, -o value                           select output format: json|pretty-json|text|ltsv (default: "json")
+   --output value, -o value                           select output format: json|pretty-json|text|ltsv|tsv (default: "json")
    --skip value, -s value [ --skip value, -s value ]  skip records by index
    --metadata, -m                                     enable metadata output (default: false)
    --line-number, -l                                  set line number at the beginning of the line (default: false)
+   --header, -H                                       set header: avairable for tsv output (default: false)
    --glob-pattern value, -G value                     filter glob pattern: available for parsing zip only (default: "*")
    --help, -h                                         show help
 ```
@@ -90,6 +92,9 @@ alpen s3 -f "sample_s3.log" -o pretty-json -m
 
 # Convert LTSV format
 alpen s3 -f "sample_s3.log" -o ltsv -m
+
+# Convert TSV format and enable header
+alpen s3 -f "sample_s3.log" -o tsv -H
 
 # Read CloudFront logs from gzip file and skip header lines
 alpen cf -g "sample_cloudfront.log.gz" -s 1,2
@@ -114,11 +119,19 @@ alpen ltsv -f "sample_ltsv.log"
 Installation
 ------------
 
-Download binary from the release page or install it with the following command:
+Install with homebrew
 
 ```sh
-go install github.com/nekrassov01/alpen@latest
+brew install nekrassov01/tap/alpen
 ```
+
+Install with go
+
+```sh
+go install github.com/nekrassov01/alpen
+```
+
+Or download binary from [releases](https://github.com/nekrassov01/alpen/releases)
 
 Shell completion
 ----------------
