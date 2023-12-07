@@ -3,7 +3,7 @@ module github.com/nekrassov01/alpen
 go 1.21
 
 require (
-	github.com/nekrassov01/access-log-parser v0.0.13
+	github.com/nekrassov01/access-log-parser v0.0.17
 	github.com/urfave/cli/v2 v2.25.7
 )
 
