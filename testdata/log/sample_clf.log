@@ -1,0 +1,5 @@
+192.168.1.1 - frank [10/Dec/2023:13:55:36 +0200] "GET /apache_pb.gif HTTP/1.1" 200 2326 "http://www.example.com/start.html" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+203.0.113.45 - frank zappa [10/Dec/2023:13:57:18 +0200] "POST /login.php HTTP/1.1" 302 4523 "http://www.example.com/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+198.51.100.34 - - [10/Dec/2023:13:59:01 +0200] "GET /products HTTP/1.1" 404 1749 "http://www.example.com/store" "Mozilla/5.0 (iPhone; CPU iPhone OS 13_3 like Mac OS X)"
+192.0.2.62 - jill [10/Dec/2023:14:02:23 +0200] "GET /images/logo.png HTTP/1.1" 200 2048
+172.16.254.1 - - [10/Dec/2023:14:04:56 +0200] "GET /news/article.html HTTP/1.1" 200 980

@@ -1,0 +1,5 @@
+vhost1.example.com 192.0.2.1 - frank [10/Oct/2023:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326 "http://www.example.com/start.html" "Mozilla/4.08 [en] (Win98; I ;Nav)"
+vhost2.example.com 192.0.2.2 - john [10/Oct/2023:13:56:23 -0700] "POST /login HTTP/1.1" 303 1078 "http://www.example.com/login" "Mozilla/5.0 (compatible; MSIE 10.0; Windows NT)"
+vhost1.example.com 192.0.2.3 - anne [10/Oct/2023:13:57:12 -0700] "HEAD /news HTTP/1.1" 200 0 "http://www.example.com/news" "Mozilla/5.0 (Linux; Android 9; Pixel 3)"
+vhost3.example.com 192.0.2.4 - mike [10/Oct/2023:13:58:55 -0700] "GET /contact HTTP/1.1" 404 523 "http://www.example.com/contact" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36"
+vhost2.example.com 192.0.2.5 - lisa [10/Oct/2023:13:59:34 -0700] "PUT /api/item/123 HTTP/1.1" 201 702 "http://
