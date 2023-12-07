@@ -3,7 +3,6 @@ package main
 import (
 	_ "embed"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/nekrassov01/access-log-parser"
@@ -47,6 +46,7 @@ const (
 	PrettyJSON
 	Text
 	LTSV
+	TSV
 )
 
 var formats = []string{
@@ -54,6 +54,7 @@ var formats = []string{
 	"pretty-json",
 	"text",
 	"ltsv",
+	"tsv",
 }
 
 func (f format) String() string {
@@ -65,11 +66,11 @@ func (f format) String() string {
 
 type app struct {
 	cli *cli.App
-	destination
+	dest
 	flag
 }
 
-type destination struct {
+type dest struct {
 	completion string
 	input      string
 	file       string
@@ -79,6 +80,7 @@ type destination struct {
 	skip       cli.IntSlice
 	metadata   bool
 	lineNum    bool
+	header     bool
 	glob       string
 }
 
@@ -92,6 +94,7 @@ type flag struct {
 	skip       *cli.IntSliceFlag
 	metadata   *cli.BoolFlag
 	lineNum    *cli.BoolFlag
+	header     *cli.BoolFlag
 	glob       *cli.StringFlag
 }
 
@@ -101,62 +104,69 @@ func newApp() *app {
 		Name:        "completion",
 		Aliases:     []string{"c"},
 		Usage:       fmt.Sprintf("select a shell to display completion scripts: %s", pipeJoin(shells)),
-		Destination: &a.destination.completion,
+		Destination: &a.dest.completion,
 	}
 	a.flag.input = &cli.StringFlag{
 		Name:        "input",
 		Aliases:     []string{"i"},
 		Usage:       "input from string",
-		Destination: &a.destination.input,
+		Destination: &a.dest.input,
 	}
 	a.flag.file = &cli.PathFlag{
 		Name:        "file-path",
 		Aliases:     []string{"f"},
 		Usage:       "input from file path",
-		Destination: &a.destination.file,
+		Destination: &a.dest.file,
 	}
 	a.flag.gzip = &cli.PathFlag{
 		Name:        "gzip-path",
 		Aliases:     []string{"g"},
 		Usage:       "input from gzip file path",
-		Destination: &a.destination.gzip,
+		Destination: &a.dest.gzip,
 	}
 	a.flag.zip = &cli.PathFlag{
 		Name:        "zip-path",
 		Aliases:     []string{"z"},
 		Usage:       "input from zip file path",
-		Destination: &a.destination.zip,
+		Destination: &a.dest.zip,
 	}
 	a.flag.output = &cli.StringFlag{
 		Name:        "output",
 		Aliases:     []string{"o"},
 		Usage:       fmt.Sprintf("select output format: %s", pipeJoin(formats)),
-		Destination: &a.destination.output,
+		Destination: &a.dest.output,
 		Value:       JSON.String(),
 	}
 	a.flag.skip = &cli.IntSliceFlag{
 		Name:        "skip",
 		Aliases:     []string{"s"},
 		Usage:       "skip records by index",
-		Destination: &a.destination.skip,
+		Destination: &a.dest.skip,
 	}
 	a.flag.metadata = &cli.BoolFlag{
 		Name:        "metadata",
 		Aliases:     []string{"m"},
 		Usage:       "enable metadata output",
-		Destination: &a.destination.metadata,
+		Destination: &a.dest.metadata,
 	}
 	a.flag.lineNum = &cli.BoolFlag{
 		Name:        "line-number",
 		Aliases:     []string{"l"},
 		Usage:       "set line number at the beginning of the line",
-		Destination: &a.destination.lineNum,
+		Destination: &a.dest.lineNum,
+	}
+	a.flag.header = &cli.BoolFlag{
+		Name:        "header",
+		Aliases:     []string{"H"},
+		Usage:       "set header: avairable for tsv output",
+		Destination: &a.dest.header,
+		Value:       false,
 	}
 	a.flag.glob = &cli.StringFlag{
 		Name:        "glob-pattern",
 		Aliases:     []string{"G"},
 		Usage:       "filter glob pattern: available for parsing zip only",
-		Destination: &a.destination.glob,
+		Destination: &a.dest.glob,
 		Value:       "*",
 	}
 	flags := []cli.Flag{
@@ -168,6 +178,7 @@ func newApp() *app {
 		a.flag.skip,
 		a.flag.metadata,
 		a.flag.lineNum,
+		a.flag.header,
 		a.flag.glob,
 	}
 	a.cli = &cli.App{
@@ -187,8 +198,8 @@ func newApp() *app {
 				UsageText:       fmt.Sprintf("%s clf", Name),
 				HideHelpCommand: true,
 				Flags:           flags,
-				Before:          a.doValidate,
-				Action:          a.doCLFAction,
+				Before:          a.before,
+				Action:          a.clfAction,
 			},
 			{
 				Name:            "clfv",
@@ -197,8 +208,8 @@ func newApp() *app {
 				UsageText:       fmt.Sprintf("%s clfv", Name),
 				HideHelpCommand: true,
 				Flags:           flags,
-				Before:          a.doValidate,
-				Action:          a.doCLFVAction,
+				Before:          a.before,
+				Action:          a.clfvAction,
 			},
 			{
 				Name:            "s3",
@@ -207,8 +218,8 @@ func newApp() *app {
 				UsageText:       fmt.Sprintf("%s s3", Name),
 				HideHelpCommand: true,
 				Flags:           flags,
-				Before:          a.doValidate,
-				Action:          a.doS3Action,
+				Before:          a.before,
+				Action:          a.s3Action,
 			},
 			{
 				Name:            "cf",
@@ -217,8 +228,8 @@ func newApp() *app {
 				UsageText:       fmt.Sprintf("%s cf", Name),
 				HideHelpCommand: true,
 				Flags:           flags,
-				Before:          a.doValidate,
-				Action:          a.doCFAction,
+				Before:          a.before,
+				Action:          a.cfAction,
 			},
 			{
 				Name:            "alb",
@@ -227,8 +238,8 @@ func newApp() *app {
 				UsageText:       fmt.Sprintf("%s alb", Name),
 				HideHelpCommand: true,
 				Flags:           flags,
-				Before:          a.doValidate,
-				Action:          a.doALBAction,
+				Before:          a.before,
+				Action:          a.albAction,
 			},
 			{
 				Name:            "nlb",
@@ -237,8 +248,8 @@ func newApp() *app {
 				UsageText:       fmt.Sprintf("%s nlb", Name),
 				HideHelpCommand: true,
 				Flags:           flags,
-				Before:          a.doValidate,
-				Action:          a.doNLBAction,
+				Before:          a.before,
+				Action:          a.nlbAction,
 			},
 			{
 				Name:            "clb",
@@ -247,8 +258,8 @@ func newApp() *app {
 				UsageText:       fmt.Sprintf("%s clb", Name),
 				HideHelpCommand: true,
 				Flags:           flags,
-				Before:          a.doValidate,
-				Action:          a.doCLBAction,
+				Before:          a.before,
+				Action:          a.clbAction,
 			},
 			{
 				Name:            "ltsv",
@@ -257,7 +268,7 @@ func newApp() *app {
 				UsageText:       fmt.Sprintf("%s ltsv", Name),
 				HideHelpCommand: true,
 				Flags:           flags,
-				Before:          a.doValidate,
+				Before:          a.before,
 				Action:          a.doLTSVAction,
 			},
 		},
@@ -265,11 +276,7 @@ func newApp() *app {
 	return &a
 }
 
-func (a *app) run() error {
-	return a.cli.Run(os.Args)
-}
-
-func (a *app) doCLFAction(c *cli.Context) error {
+func (a *app) clfAction(c *cli.Context) error {
 	p, err := a.newParser(c, parser.NewApacheCLFRegexParser())
 	if err != nil {
 		return err
@@ -277,7 +284,7 @@ func (a *app) doCLFAction(c *cli.Context) error {
 	return a.out(c, p)
 }
 
-func (a *app) doCLFVAction(c *cli.Context) error {
+func (a *app) clfvAction(c *cli.Context) error {
 	p, err := a.newParser(c, parser.NewApacheCLFWithVHostRegexParser())
 	if err != nil {
 		return err
@@ -285,7 +292,7 @@ func (a *app) doCLFVAction(c *cli.Context) error {
 	return a.out(c, p)
 }
 
-func (a *app) doS3Action(c *cli.Context) error {
+func (a *app) s3Action(c *cli.Context) error {
 	p, err := a.newParser(c, parser.NewS3RegexParser())
 	if err != nil {
 		return err
@@ -293,7 +300,7 @@ func (a *app) doS3Action(c *cli.Context) error {
 	return a.out(c, p)
 }
 
-func (a *app) doCFAction(c *cli.Context) error {
+func (a *app) cfAction(c *cli.Context) error {
 	p, err := a.newParser(c, parser.NewCFRegexParser())
 	if err != nil {
 		return err
@@ -301,7 +308,7 @@ func (a *app) doCFAction(c *cli.Context) error {
 	return a.out(c, p)
 }
 
-func (a *app) doALBAction(c *cli.Context) error {
+func (a *app) albAction(c *cli.Context) error {
 	p, err := a.newParser(c, parser.NewALBRegexParser())
 	if err != nil {
 		return err
@@ -309,7 +316,7 @@ func (a *app) doALBAction(c *cli.Context) error {
 	return a.out(c, p)
 }
 
-func (a *app) doNLBAction(c *cli.Context) error {
+func (a *app) nlbAction(c *cli.Context) error {
 	p, err := a.newParser(c, parser.NewNLBRegexParser())
 	if err != nil {
 		return err
@@ -317,7 +324,7 @@ func (a *app) doNLBAction(c *cli.Context) error {
 	return a.out(c, p)
 }
 
-func (a *app) doCLBAction(c *cli.Context) error {
+func (a *app) clbAction(c *cli.Context) error {
 	p, err := a.newParser(c, parser.NewCLBRegexParser())
 	if err != nil {
 		return err
@@ -345,6 +352,9 @@ func (a *app) newParser(c *cli.Context, p parser.Parser) (parser.Parser, error) 
 	case LTSV.String():
 		p.SetLineHandler(parser.LTSVLineHandler)
 		p.SetMetadataHandler(parser.LTSVMetadataHandler)
+	case TSV.String():
+		p.SetLineHandler(parser.TSVLineHandler)
+		p.SetMetadataHandler(parser.TSVMetadataHandler)
 	default:
 		return nil, fmt.Errorf(
 			"cannot parse command line flags: invalid output format: allowed values: %s",
@@ -367,31 +377,31 @@ func (a *app) dispatch(c *cli.Context, p parser.Parser) (result *parser.Result, 
 	switch {
 	case c.IsSet(a.flag.input.Name):
 		result, err = p.ParseString(
-			a.destination.input,
-			a.destination.skip.Value(),
-			a.destination.lineNum,
+			a.dest.input,
+			a.dest.skip.Value(),
+			a.dest.lineNum,
 		)
 		return result, nil, err
 	case c.IsSet(a.flag.file.Name):
 		result, err = p.ParseFile(
-			a.destination.file,
-			a.destination.skip.Value(),
-			a.destination.lineNum,
+			a.dest.file,
+			a.dest.skip.Value(),
+			a.dest.lineNum,
 		)
 		return result, nil, err
 	case c.IsSet(a.flag.gzip.Name):
 		result, err = p.ParseGzip(
-			a.destination.gzip,
-			a.destination.skip.Value(),
-			a.destination.lineNum,
+			a.dest.gzip,
+			a.dest.skip.Value(),
+			a.dest.lineNum,
 		)
 		return result, nil, err
 	case c.IsSet(a.flag.zip.Name):
 		results, err = p.ParseZipEntries(
-			a.destination.zip,
-			a.destination.skip.Value(),
-			a.destination.lineNum,
-			a.destination.glob,
+			a.dest.zip,
+			a.dest.skip.Value(),
+			a.dest.lineNum,
+			a.dest.glob,
 		)
 		return nil, results, err
 	default:
@@ -405,6 +415,9 @@ func (a *app) dispatch(c *cli.Context, p parser.Parser) (result *parser.Result, 
 func (a *app) printResult(result *parser.Result, results []*parser.Result) {
 	var builder strings.Builder
 	w := func(r *parser.Result) {
+		if a.dest.header && a.dest.output == TSV.String() {
+			writeTSVHeader(r.Labels[0])
+		}
 		for i, data := range r.Data {
 			if i > 0 {
 				builder.WriteRune('\n')
@@ -412,7 +425,7 @@ func (a *app) printResult(result *parser.Result, results []*parser.Result) {
 			builder.WriteString(data)
 		}
 		builder.WriteRune('\n')
-		if a.destination.metadata {
+		if a.dest.metadata {
 			builder.WriteString(r.Metadata)
 			builder.WriteRune('\n')
 		}
@@ -434,7 +447,7 @@ func (a *app) doRootAction(c *cli.Context) error {
 		return fmt.Errorf("cannot parse command line flags: no flag provided")
 	}
 	if c.IsSet(a.flag.completion.Name) {
-		switch a.destination.completion {
+		switch a.dest.completion {
 		case bash.String():
 			fmt.Println(bashCompletion)
 		case zsh.String():
@@ -451,11 +464,17 @@ func (a *app) doRootAction(c *cli.Context) error {
 	return nil
 }
 
-func (a *app) doValidate(c *cli.Context) error {
+func (a *app) before(c *cli.Context) error {
 	if err := checkSingle(c, a.flag.input.Name, a.flag.file.Name, a.flag.gzip.Name, a.flag.zip.Name); err != nil {
 		return err
 	}
-	return checkValidPair(c, a.flag.zip.Name, a.flag.glob.Name)
+	if err := checkValidPair(c, a.flag.zip.Name, a.flag.glob.Name); err != nil {
+		return err
+	}
+	if a.dest.header && a.dest.output != TSV.String() {
+		return fmt.Errorf("cannot parse command line flags: `header` is available for output `tsv` only")
+	}
+	return nil
 }
 
 func checkSingle(c *cli.Context, flags ...string) error {
@@ -480,4 +499,8 @@ func checkValidPair(c *cli.Context, a, b string) error {
 
 func pipeJoin(s []string) string {
 	return strings.Join(s, "|")
+}
+
+func writeTSVHeader(line []string) {
+	fmt.Println(strings.Join(line, "\t"))
 }
