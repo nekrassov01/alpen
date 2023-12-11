@@ -416,7 +416,7 @@ func (a *app) printResult(result *parser.Result, results []*parser.Result) {
 	var builder strings.Builder
 	w := func(r *parser.Result) {
 		if a.dest.header && a.dest.output == TSV.String() {
-			writeTSVHeader(r.Labels[0])
+			writeTSVHeader(r.Labels[0], a.dest.lineNum)
 		}
 		for i, data := range r.Data {
 			if i > 0 {
@@ -501,6 +501,9 @@ func pipeJoin(s []string) string {
 	return strings.Join(s, "|")
 }
 
-func writeTSVHeader(line []string) {
+func writeTSVHeader(line []string, lineNumber bool) {
+	if lineNumber {
+		line = append([]string{"index"}, line...)
+	}
 	fmt.Println(strings.Join(line, "\t"))
 }
