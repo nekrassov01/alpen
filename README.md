@@ -32,25 +32,25 @@ USAGE:
    alpen [global options] command [command options] [arguments...]
 
 VERSION:
-   0.0.16
+   0.0.0
 
 DESCRIPTION:
    A cli application for parsing various access logs
 
 COMMANDS:
-   clf   Parses apache common/combined log format
-   clfv  Parses apache common/combined log format with vhost
-   s3    Parses S3 access logs
-   cf    Parses CloudFront access logs
-   alb   Parses ALB access logs
-   nlb   Parses NLB access logs
-   clb   Parses CLB access logs
-   ltsv  Parses LTSV format logs
+   completion  Generate completion scripts for specified shell: bash|zsh|pwsh
+   clf         Parses apache common/combined log format
+   clfv        Parses apache common/combined log format with vhost
+   s3          Parses S3 access logs
+   cf          Parses CloudFront access logs
+   alb         Parses ALB access logs
+   nlb         Parses NLB access logs
+   clb         Parses CLB access logs
+   ltsv        Parses LTSV format logs
 
 GLOBAL OPTIONS:
-   --completion value, -c value  select a shell to display completion scripts: bash|zsh|pwsh
-   --help, -h                    show help
-   --version, -v                 print the version
+   --help, -h     show help
+   --version, -v  print the version
 ```
 
 ```text
@@ -143,7 +143,7 @@ Supported shells are as follows:
 - pwsh
 
 ```sh
-alpen --completion bash|zsh|pwsh
+alpen completion bash|zsh|pwsh
 ```
 
 Author
