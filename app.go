@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/nekrassov01/access-log-parser"
+	parser "github.com/nekrassov01/access-log-parser"
 	"github.com/urfave/cli/v2"
 )
 
-//go:embed completion/alpen.bash
+//go:embed completions/alpen.bash
 var bashCompletion string
 
-//go:embed completion/alpen.zsh
+//go:embed completions/alpen.zsh
 var zshCompletion string
 
-//go:embed completion/alpen.ps1
+//go:embed completions/alpen.ps1
 var pwshCompletion string
 
 type shell int
@@ -65,47 +65,39 @@ func (f format) String() string {
 }
 
 type app struct {
-	cli *cli.App
-	dest
-	flag
+	cli  *cli.App
+	dest dest
+	flag flag
 }
 
 type dest struct {
-	completion string
-	input      string
-	file       string
-	gzip       string
-	zip        string
-	output     string
-	skip       cli.IntSlice
-	metadata   bool
-	lineNum    bool
-	header     bool
-	glob       string
+	input    string
+	file     string
+	gzip     string
+	zip      string
+	output   string
+	skip     cli.IntSlice
+	metadata bool
+	lineNum  bool
+	header   bool
+	glob     string
 }
 
 type flag struct {
-	completion *cli.StringFlag
-	input      *cli.StringFlag
-	file       *cli.PathFlag
-	gzip       *cli.PathFlag
-	zip        *cli.PathFlag
-	output     *cli.StringFlag
-	skip       *cli.IntSliceFlag
-	metadata   *cli.BoolFlag
-	lineNum    *cli.BoolFlag
-	header     *cli.BoolFlag
-	glob       *cli.StringFlag
+	input    *cli.StringFlag
+	file     *cli.PathFlag
+	gzip     *cli.PathFlag
+	zip      *cli.PathFlag
+	output   *cli.StringFlag
+	skip     *cli.IntSliceFlag
+	metadata *cli.BoolFlag
+	lineNum  *cli.BoolFlag
+	header   *cli.BoolFlag
+	glob     *cli.StringFlag
 }
 
 func newApp() *app {
 	a := app{}
-	a.flag.completion = &cli.StringFlag{
-		Name:        "completion",
-		Aliases:     []string{"c"},
-		Usage:       fmt.Sprintf("select a shell to display completion scripts: %s", pipeJoin(shells)),
-		Destination: &a.dest.completion,
-	}
 	a.flag.input = &cli.StringFlag{
 		Name:        "input",
 		Aliases:     []string{"i"},
@@ -188,9 +180,16 @@ func newApp() *app {
 		Description:          "A cli application for parsing various access logs",
 		HideHelpCommand:      true,
 		EnableBashCompletion: true,
-		Action:               a.doRootAction,
-		Flags:                []cli.Flag{a.flag.completion},
+		Action:               a.rootAction,
 		Commands: []*cli.Command{
+			{
+				Name:            "completion",
+				Description:     "Generate completion scripts for specified shell",
+				Usage:           fmt.Sprintf("Generate completion scripts for specified shell: %s", pipeJoin(shells)),
+				UsageText:       fmt.Sprintf("%s completion %s", Name, pipeJoin(shells)),
+				HideHelpCommand: true,
+				Action:          completionAction,
+			},
 			{
 				Name:            "clf",
 				Description:     "Parses apache common/combined log format and converts them to structured formats",
@@ -442,28 +441,6 @@ func (a *app) printResult(result *parser.Result, results []*parser.Result) {
 	fmt.Println(builder.String())
 }
 
-func (a *app) doRootAction(c *cli.Context) error {
-	if c.Args().Len() == 0 && c.NumFlags() == 0 {
-		return fmt.Errorf("cannot parse command line flags: no flag provided")
-	}
-	if c.IsSet(a.flag.completion.Name) {
-		switch a.dest.completion {
-		case bash.String():
-			fmt.Println(bashCompletion)
-		case zsh.String():
-			fmt.Println(zshCompletion)
-		case pwsh.String():
-			fmt.Println(pwshCompletion)
-		default:
-			return fmt.Errorf(
-				"cannot parse command line flags: invalid completion shell: allowed values: %s",
-				pipeJoin(shells),
-			)
-		}
-	}
-	return nil
-}
-
 func (a *app) before(c *cli.Context) error {
 	if err := checkSingle(c, a.flag.input.Name, a.flag.file.Name, a.flag.gzip.Name, a.flag.zip.Name); err != nil {
 		return err
@@ -506,4 +483,28 @@ func writeTSVHeader(line []string, lineNumber bool) {
 		line = append([]string{"index"}, line...)
 	}
 	fmt.Println(strings.Join(line, "\t"))
+}
+
+func (a *app) rootAction(c *cli.Context) error {
+	if c.Args().Len() == 0 && c.NumFlags() == 0 {
+		return fmt.Errorf("cannot parse command line flags: no flag provided")
+	}
+	return nil
+}
+
+func completionAction(c *cli.Context) error {
+	switch c.Args().First() {
+	case bash.String():
+		fmt.Println(bashCompletion)
+	case zsh.String():
+		fmt.Println(zshCompletion)
+	case pwsh.String():
+		fmt.Println(pwshCompletion)
+	default:
+		return fmt.Errorf(
+			"cannot parse command line flags: invalid completion shell: allowed values: %s",
+			pipeJoin(shells),
+		)
+	}
+	return nil
 }

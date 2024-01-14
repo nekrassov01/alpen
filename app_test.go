@@ -248,22 +248,22 @@ func Test_cli(t *testing.T) {
 		},
 		{
 			name:    "completion bash",
-			args:    []string{Name, "-c", "bash"},
+			args:    []string{Name, "completion", "bash"},
 			wantErr: false,
 		},
 		{
 			name:    "completion zsh",
-			args:    []string{Name, "-c", "zsh"},
+			args:    []string{Name, "completion", "zsh"},
 			wantErr: false,
 		},
 		{
 			name:    "completion pwsh",
-			args:    []string{Name, "-c", "pwsh"},
+			args:    []string{Name, "completion", "pwsh"},
 			wantErr: false,
 		},
 		{
 			name:    "completion unsupported",
-			args:    []string{Name, "-c", "fish"},
+			args:    []string{Name, "completion", "fish"},
 			wantErr: true,
 		},
 		{
