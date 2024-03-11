@@ -1,68 +1,14 @@
 package main
 
 import (
-	_ "embed"
 	"fmt"
+	"os"
 	"strings"
 
+	"github.com/mattn/go-isatty"
 	parser "github.com/nekrassov01/access-log-parser"
 	"github.com/urfave/cli/v2"
 )
-
-//go:embed completions/alpen.bash
-var bashCompletion string
-
-//go:embed completions/alpen.zsh
-var zshCompletion string
-
-//go:embed completions/alpen.ps1
-var pwshCompletion string
-
-type shell int
-
-const (
-	bash shell = iota
-	zsh
-	pwsh
-)
-
-var shells = []string{
-	"bash",
-	"zsh",
-	"pwsh",
-}
-
-func (s shell) String() string {
-	if s >= 0 && int(s) < len(shells) {
-		return shells[s]
-	}
-	return ""
-}
-
-type format int
-
-const (
-	JSON format = iota
-	PrettyJSON
-	Text
-	LTSV
-	TSV
-)
-
-var formats = []string{
-	"json",
-	"pretty-json",
-	"text",
-	"ltsv",
-	"tsv",
-}
-
-func (f format) String() string {
-	if f >= 0 && int(f) < len(formats) {
-		return formats[f]
-	}
-	return ""
-}
 
 type app struct {
 	cli  *cli.App
@@ -71,29 +17,29 @@ type app struct {
 }
 
 type dest struct {
-	input    string
-	file     string
-	gzip     string
-	zip      string
-	output   string
-	skip     cli.IntSlice
-	metadata bool
-	lineNum  bool
-	header   bool
-	glob     string
+	input   string
+	output  string
+	result  bool
+	glob    string
+	labels  cli.StringSlice
+	filters cli.StringSlice
+	skip    cli.IntSlice
+	prefix  bool
+	unmatch bool
+	num     bool
 }
 
 type flag struct {
-	input    *cli.StringFlag
-	file     *cli.PathFlag
-	gzip     *cli.PathFlag
-	zip      *cli.PathFlag
-	output   *cli.StringFlag
-	skip     *cli.IntSliceFlag
-	metadata *cli.BoolFlag
-	lineNum  *cli.BoolFlag
-	header   *cli.BoolFlag
-	glob     *cli.StringFlag
+	input   *cli.StringFlag
+	output  *cli.StringFlag
+	result  *cli.BoolFlag
+	glob    *cli.StringFlag
+	labels  *cli.StringSliceFlag
+	filters *cli.StringSliceFlag
+	skip    *cli.IntSliceFlag
+	prefix  *cli.BoolFlag
+	unmatch *cli.BoolFlag
+	num     *cli.BoolFlag
 }
 
 func newApp() *app {
@@ -101,77 +47,77 @@ func newApp() *app {
 	a.flag.input = &cli.StringFlag{
 		Name:        "input",
 		Aliases:     []string{"i"},
-		Usage:       "input from string",
+		Usage:       fmt.Sprintf("select input type: %s", pipeJoin(inputs)),
 		Destination: &a.dest.input,
-	}
-	a.flag.file = &cli.PathFlag{
-		Name:        "file-path",
-		Aliases:     []string{"f"},
-		Usage:       "input from file path",
-		Destination: &a.dest.file,
-	}
-	a.flag.gzip = &cli.PathFlag{
-		Name:        "gzip-path",
-		Aliases:     []string{"g"},
-		Usage:       "input from gzip file path",
-		Destination: &a.dest.gzip,
-	}
-	a.flag.zip = &cli.PathFlag{
-		Name:        "zip-path",
-		Aliases:     []string{"z"},
-		Usage:       "input from zip file path",
-		Destination: &a.dest.zip,
+		Value:       inputStdin.String(),
 	}
 	a.flag.output = &cli.StringFlag{
 		Name:        "output",
 		Aliases:     []string{"o"},
-		Usage:       fmt.Sprintf("select output format: %s", pipeJoin(formats)),
+		Usage:       fmt.Sprintf("select output type: %s", pipeJoin(outputs)),
 		Destination: &a.dest.output,
-		Value:       JSON.String(),
+		Value:       outputJSON.String(),
 	}
-	a.flag.skip = &cli.IntSliceFlag{
-		Name:        "skip",
-		Aliases:     []string{"s"},
-		Usage:       "skip records by index",
-		Destination: &a.dest.skip,
-	}
-	a.flag.metadata = &cli.BoolFlag{
-		Name:        "metadata",
-		Aliases:     []string{"m"},
-		Usage:       "enable metadata output",
-		Destination: &a.dest.metadata,
-	}
-	a.flag.lineNum = &cli.BoolFlag{
-		Name:        "line-number",
-		Aliases:     []string{"l"},
-		Usage:       "set line number at the beginning of the line",
-		Destination: &a.dest.lineNum,
-	}
-	a.flag.header = &cli.BoolFlag{
-		Name:        "header",
-		Aliases:     []string{"H"},
-		Usage:       "set header: avairable for tsv output",
-		Destination: &a.dest.header,
-		Value:       false,
+	a.flag.result = &cli.BoolFlag{
+		Name:        "result",
+		Aliases:     []string{"r"},
+		Usage:       "enable result output",
+		Destination: &a.dest.result,
 	}
 	a.flag.glob = &cli.StringFlag{
-		Name:        "glob-pattern",
-		Aliases:     []string{"G"},
+		Name:        "glob",
+		Aliases:     []string{"g"},
 		Usage:       "filter glob pattern: available for parsing zip only",
 		Destination: &a.dest.glob,
 		Value:       "*",
 	}
+	a.flag.labels = &cli.StringSliceFlag{
+		Name:        "labels",
+		Aliases:     []string{"l"},
+		Usage:       "select labels to output with labels",
+		Destination: &a.dest.labels,
+	}
+	a.flag.filters = &cli.StringSliceFlag{
+		Name:        "filters",
+		Aliases:     []string{"f"},
+		Usage:       "set filter expressions: allowed operator: >|>=|<|<=|==|!=|==*|!=*|=~|!~|=~*|!~*",
+		Destination: &a.dest.filters,
+	}
+	a.flag.skip = &cli.IntSliceFlag{
+		Name:        "skip",
+		Aliases:     []string{"s"},
+		Usage:       "skip lines by line number",
+		Destination: &a.dest.skip,
+	}
+	a.flag.prefix = &cli.BoolFlag{
+		Name:        "prefix",
+		Aliases:     []string{"p"},
+		Usage:       "enable line prefix: PROCESSED|UNMATCHED",
+		Destination: &a.dest.prefix,
+	}
+	a.flag.unmatch = &cli.BoolFlag{
+		Name:        "unmatch",
+		Aliases:     []string{"u"},
+		Usage:       "enable output of unmatched lines",
+		Destination: &a.dest.unmatch,
+	}
+	a.flag.num = &cli.BoolFlag{
+		Name:        "num",
+		Aliases:     []string{"n"},
+		Usage:       "set line number at the beginning of the line",
+		Destination: &a.dest.num,
+	}
 	flags := []cli.Flag{
 		a.flag.input,
-		a.flag.file,
-		a.flag.gzip,
-		a.flag.zip,
 		a.flag.output,
-		a.flag.skip,
-		a.flag.metadata,
-		a.flag.lineNum,
-		a.flag.header,
+		a.flag.result,
 		a.flag.glob,
+		a.flag.labels,
+		a.flag.filters,
+		a.flag.skip,
+		a.flag.prefix,
+		a.flag.unmatch,
+		a.flag.num,
 	}
 	a.cli = &cli.App{
 		Name:                 Name,
@@ -276,235 +222,149 @@ func newApp() *app {
 }
 
 func (a *app) clfAction(c *cli.Context) error {
-	p, err := a.newParser(c, parser.NewApacheCLFRegexParser())
+	opt, err := a.opt()
 	if err != nil {
 		return err
 	}
-	return a.out(c, p)
+	return a.out(c, parser.NewApacheCLFRegexParser(c.Context, os.Stdout, opt))
 }
 
 func (a *app) clfvAction(c *cli.Context) error {
-	p, err := a.newParser(c, parser.NewApacheCLFWithVHostRegexParser())
+	opt, err := a.opt()
 	if err != nil {
 		return err
 	}
-	return a.out(c, p)
+	return a.out(c, parser.NewApacheCLFWithVHostRegexParser(c.Context, os.Stdout, opt))
 }
 
 func (a *app) s3Action(c *cli.Context) error {
-	p, err := a.newParser(c, parser.NewS3RegexParser())
+	opt, err := a.opt()
 	if err != nil {
 		return err
 	}
-	return a.out(c, p)
+	return a.out(c, parser.NewS3RegexParser(c.Context, os.Stdout, opt))
 }
 
 func (a *app) cfAction(c *cli.Context) error {
-	p, err := a.newParser(c, parser.NewCFRegexParser())
+	opt, err := a.opt()
 	if err != nil {
 		return err
 	}
-	return a.out(c, p)
+	return a.out(c, parser.NewCFRegexParser(c.Context, os.Stdout, opt))
 }
 
 func (a *app) albAction(c *cli.Context) error {
-	p, err := a.newParser(c, parser.NewALBRegexParser())
+	opt, err := a.opt()
 	if err != nil {
 		return err
 	}
-	return a.out(c, p)
+	return a.out(c, parser.NewALBRegexParser(c.Context, os.Stdout, opt))
 }
 
 func (a *app) nlbAction(c *cli.Context) error {
-	p, err := a.newParser(c, parser.NewNLBRegexParser())
+	opt, err := a.opt()
 	if err != nil {
 		return err
 	}
-	return a.out(c, p)
+	return a.out(c, parser.NewNLBRegexParser(c.Context, os.Stdout, opt))
 }
 
 func (a *app) clbAction(c *cli.Context) error {
-	p, err := a.newParser(c, parser.NewCLBRegexParser())
+	opt, err := a.opt()
 	if err != nil {
 		return err
 	}
-	return a.out(c, p)
+	return a.out(c, parser.NewCLBRegexParser(c.Context, os.Stdout, opt))
 }
 
 func (a *app) doLTSVAction(c *cli.Context) error {
-	p, err := a.newParser(c, parser.NewLTSVParser())
+	opt, err := a.opt()
 	if err != nil {
 		return err
 	}
-	return a.out(c, p)
-}
-
-func (a *app) newParser(c *cli.Context, p parser.Parser) (parser.Parser, error) {
-	switch c.String(a.flag.output.Name) {
-	case JSON.String():
-	case PrettyJSON.String():
-		p.SetLineHandler(parser.PrettyJSONLineHandler)
-		p.SetMetadataHandler(parser.PrettyJSONMetadataHandler)
-	case Text.String():
-		p.SetLineHandler(parser.KeyValuePairLineHandler)
-		p.SetMetadataHandler(parser.KeyValuePairMetadataHandler)
-	case LTSV.String():
-		p.SetLineHandler(parser.LTSVLineHandler)
-		p.SetMetadataHandler(parser.LTSVMetadataHandler)
-	case TSV.String():
-		p.SetLineHandler(parser.TSVLineHandler)
-		p.SetMetadataHandler(parser.TSVMetadataHandler)
-	default:
-		return nil, fmt.Errorf(
-			"cannot parse command line flags: invalid output format: allowed values: %s",
-			pipeJoin(formats),
-		)
-	}
-	return p, nil
-}
-
-func (a *app) out(c *cli.Context, p parser.Parser) error {
-	result, results, err := a.dispatch(c, p)
-	if err != nil {
-		return err
-	}
-	a.printResult(result, results)
-	return nil
-}
-
-func (a *app) dispatch(c *cli.Context, p parser.Parser) (result *parser.Result, results []*parser.Result, err error) {
-	switch {
-	case c.IsSet(a.flag.input.Name):
-		result, err = p.ParseString(
-			a.dest.input,
-			a.dest.skip.Value(),
-			a.dest.lineNum,
-		)
-		return result, nil, err
-	case c.IsSet(a.flag.file.Name):
-		result, err = p.ParseFile(
-			a.dest.file,
-			a.dest.skip.Value(),
-			a.dest.lineNum,
-		)
-		return result, nil, err
-	case c.IsSet(a.flag.gzip.Name):
-		result, err = p.ParseGzip(
-			a.dest.gzip,
-			a.dest.skip.Value(),
-			a.dest.lineNum,
-		)
-		return result, nil, err
-	case c.IsSet(a.flag.zip.Name):
-		results, err = p.ParseZipEntries(
-			a.dest.zip,
-			a.dest.skip.Value(),
-			a.dest.lineNum,
-			a.dest.glob,
-		)
-		return nil, results, err
-	default:
-		return nil, nil, fmt.Errorf(
-			"cannot parse command line flags: no valid input provided: %s",
-			pipeJoin([]string{a.flag.input.Name, a.flag.file.Name, a.flag.gzip.Name, a.flag.zip.Name}),
-		)
-	}
-}
-
-func (a *app) printResult(result *parser.Result, results []*parser.Result) {
-	var builder strings.Builder
-	w := func(r *parser.Result) {
-		if a.dest.header && a.dest.output == TSV.String() {
-			writeTSVHeader(r.Labels[0], a.dest.lineNum)
-		}
-		for i, data := range r.Data {
-			if i > 0 {
-				builder.WriteRune('\n')
-			}
-			builder.WriteString(data)
-		}
-		builder.WriteRune('\n')
-		if a.dest.metadata {
-			builder.WriteString(r.Metadata)
-			builder.WriteRune('\n')
-		}
-	}
-	switch {
-	case result != nil && results == nil:
-		w(result)
-	case result == nil && results != nil:
-		for _, r := range results {
-			w(r)
-		}
-	default:
-	}
-	fmt.Println(builder.String())
+	return a.out(c, parser.NewLTSVParser(c.Context, os.Stdout, opt))
 }
 
 func (a *app) before(c *cli.Context) error {
-	if err := checkSingle(c, a.flag.input.Name, a.flag.file.Name, a.flag.gzip.Name, a.flag.zip.Name); err != nil {
-		return err
-	}
-	if err := checkValidPair(c, a.flag.zip.Name, a.flag.glob.Name); err != nil {
-		return err
-	}
-	if a.dest.header && a.dest.output != TSV.String() {
-		return fmt.Errorf("cannot parse command line flags: `header` is available for output `tsv` only")
+	if a.dest.input != inputZip.String() && c.IsSet(a.flag.glob.Name) {
+		return fmt.Errorf("\"glob\" is only valid with zip")
 	}
 	return nil
-}
-
-func checkSingle(c *cli.Context, flags ...string) error {
-	i := 0
-	for _, flag := range flags {
-		if c.IsSet(flag) {
-			i++
-		}
-	}
-	if i > 1 {
-		return fmt.Errorf("cannot parse command line flags: only one flag can be used: %s", pipeJoin(flags))
-	}
-	return nil
-}
-
-func checkValidPair(c *cli.Context, a, b string) error {
-	if !c.IsSet(a) && c.IsSet(b) {
-		return fmt.Errorf("cannot parse command line flags: `%s` is available for `%s` only", b, a)
-	}
-	return nil
-}
-
-func pipeJoin(s []string) string {
-	return strings.Join(s, "|")
-}
-
-func writeTSVHeader(line []string, lineNumber bool) {
-	if lineNumber {
-		line = append([]string{"index"}, line...)
-	}
-	fmt.Println(strings.Join(line, "\t"))
 }
 
 func (a *app) rootAction(c *cli.Context) error {
 	if c.Args().Len() == 0 && c.NumFlags() == 0 {
-		return fmt.Errorf("cannot parse command line flags: no flag provided")
+		return fmt.Errorf("no flag provided")
 	}
 	return nil
 }
 
 func completionAction(c *cli.Context) error {
 	switch c.Args().First() {
-	case bash.String():
+	case shbash.String():
 		fmt.Println(bashCompletion)
-	case zsh.String():
+	case shzsh.String():
 		fmt.Println(zshCompletion)
-	case pwsh.String():
+	case shpwsh.String():
 		fmt.Println(pwshCompletion)
 	default:
-		return fmt.Errorf(
-			"cannot parse command line flags: invalid completion shell: allowed values: %s",
-			pipeJoin(shells),
-		)
+		return fmt.Errorf("invalid completion shell: allowed values: %s", pipeJoin(shells))
 	}
 	return nil
+}
+
+func (a *app) opt() (parser.Option, error) {
+	opt := parser.Option{
+		Labels:       a.flag.labels.GetDestination(),
+		Filters:      a.flag.filters.GetDestination(),
+		SkipLines:    a.flag.skip.GetDestination(),
+		Prefix:       a.dest.prefix,
+		UnmatchLines: a.dest.unmatch,
+		LineNumber:   a.dest.num,
+	}
+	switch a.dest.output {
+	case outputJSON.String():
+		opt.LineHandler = parser.JSONLineHandler
+	case outputPrettyJSON.String():
+		opt.LineHandler = parser.PrettyJSONLineHandler
+	case outputText.String():
+		opt.LineHandler = parser.KeyValuePairLineHandler
+	case outputLTSV.String():
+		opt.LineHandler = parser.LTSVLineHandler
+	case outputTSV.String():
+		opt.LineHandler = parser.TSVLineHandler
+	default:
+		return parser.Option{}, fmt.Errorf("invalid output type: allowed values: %s", pipeJoin(outputs))
+	}
+	return opt, nil
+}
+
+func (a *app) out(c *cli.Context, p parser.Parser) error {
+	var r *parser.Result
+	var err error
+	switch a.dest.input {
+	case inputStdin.String():
+		if isatty.IsTerminal(os.Stdin.Fd()) {
+			r, err = p.ParseFile(c.Args().First())
+		} else {
+			r, err = p.Parse(os.Stdin)
+		}
+	case inputGzip.String():
+		r, err = p.ParseGzip(c.Args().First())
+	case inputZip.String():
+		r, err = p.ParseZipEntries(c.Args().First(), a.dest.glob)
+	default:
+		return fmt.Errorf("invalid input type: allowed values: %s", pipeJoin(inputs))
+	}
+	if err != nil {
+		return err
+	}
+	if a.dest.result {
+		fmt.Println(r)
+	}
+	return nil
+}
+
+func pipeJoin(s []string) string {
+	return strings.Join(s, "|")
 }
