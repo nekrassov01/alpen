@@ -55,26 +55,26 @@ GLOBAL OPTIONS:
 
 ```text
 NAME:
-   alpen clf - Parses apache common/combined log format
+   alpen s3 - Parses S3 access logs
 
 USAGE:
-   alpen clf
+   alpen s3
 
 DESCRIPTION:
-   Parses apache common/combined log format and converts them to structured formats
+   Parses S3 access logs and converts them to structured formats
 
 OPTIONS:
-   --input value, -i value                            input from string
-   --file-path value, -f value                        input from file path
-   --gzip-path value, -g value                        input from gzip file path
-   --zip-path value, -z value                         input from zip file path
-   --output value, -o value                           select output format: json|pretty-json|text|ltsv|tsv (default: "json")
-   --skip value, -s value [ --skip value, -s value ]  skip records by index
-   --metadata, -m                                     enable metadata output (default: false)
-   --line-number, -l                                  set line number at the beginning of the line (default: false)
-   --header, -H                                       set header: avairable for tsv output (default: false)
-   --glob-pattern value, -G value                     filter glob pattern: available for parsing zip only (default: "*")
-   --help, -h                                         show help
+   --input value, -i value                                  select input type: default|gz|zip (default: "default")
+   --output value, -o value                                 select output type: json|pretty-json|text|ltsv|tsv (default: "json")
+   --result, -r                                             enable result output (default: false)
+   --glob value, -g value                                   filter glob pattern: available for parsing zip only (default: "*")
+   --labels value, -l value [ --labels value, -l value ]    select labels to output with labels
+   --filters value, -f value [ --filters value, -f value ]  set filter expressions: allowed operator: >|>=|<|<=|==|!=|==*|!=*|=~|!~|=~*|!~*
+   --skip value, -s value [ --skip value, -s value ]        skip lines by line number
+   --prefix, -p                                             enable line prefix: PROCESSED|UNMATCHED (default: false)
+   --unmatch, -u                                            enable output of unmatched lines (default: false)
+   --num, -n                                                set line number at the beginning of the line (default: false)
+   --help, -h                                               show help
 ```
 
 Example
@@ -82,38 +82,55 @@ Example
 
 ```sh
 # Read and convert s3 logs from file and convert to default NDJSON format
-alpen s3 -f "sample_s3.log"
+alpen s3 "sample_s3.log"
 
-# Set line number at the beginning of line, like "index": "n"
-alpen s3 -f "sample_s3.log" -l
+# Set line number at the beginning of line
+alpen s3 -n "sample_s3.log"
 
-# Read s3 logs from file and convert to pretty NDJSON, also output metadata
-alpen s3 -f "sample_s3.log" -o pretty-json -m
+# Read s3 log from file, convert to pretty NDJSON and output parsed results
+alpen s3 -r  -o pretty-json "sample_s3.log"
+
+# Can be combined with tail -f to process standard input
+# Results are consistent, even if interrupted with CTRL+C
+tail -f sample_s3.log | alpen s3 -r
 
 # Convert LTSV format
-alpen s3 -f "sample_s3.log" -o ltsv -m
+alpen s3 -r -o ltsv "sample_s3.log"
 
-# Convert TSV format and enable header
-alpen s3 -f "sample_s3.log" -o tsv -H
+# In TSV format, the header is set from the parsing result of the first line
+alpen s3 -r -o tsv "sample_s3.log"
 
 # Read CloudFront logs from gzip file and skip header lines
-alpen cf -g "sample_cloudfront.log.gz" -s 1,2
+alpen cf -r -s 1,2 -i gz "sample_cloudfront.log.gz"
 
 # Read ALB logs from zip file and convert all entries with `.log` extension
-alpen alb -z "sample_alb.log.zip" -G "*.log"
+alpen alb -r -g "*.log" -i zip "sample_alb.log.zip"
+
+# Unmatched lines can also be output raw and made explicit by line prefix
+alpen s3 -u -p "sample_s3.log"
+
+# Columns can be narrowed by specifying labels
+alpen s3 -l bucket,method,request_uri,protocol "sample_s3.log"
+
+# Filter expressions to narrow down rows
+#   > >= == <= <  (arithmetic (float64))
+#   == ==* != !=* (string comparison (string))
+#   =~ !~ =~* !~* (regular expression (string))
+# inspired from <https://github.com/sonots/lltsv>
+alpen s3 -f "method == GET,operation =~ .*BUCKETPOLICY"
 
 # Read apache common/combined format logs
 # Matches both common/combined by default
 # Use space or tab as delimiter
-alpen clf -f "sample_clf.log"
+alpen clf "sample_clf.log"
 
 # Read apache common/combined log format with virtual host
 # Matches if virtual host is at the beginning
-alpen clfv -f "sample_clf.log"
+alpen clfv "sample_clf.log"
 
 # LTSV uses labels as names, so it is not possible to decompose a request into
 # methods, request_uri, or protocols.
-alpen ltsv -f "sample_ltsv.log"
+alpen ltsv "sample_ltsv.log"
 ```
 
 Installation
