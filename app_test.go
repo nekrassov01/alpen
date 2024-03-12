@@ -157,7 +157,7 @@ func Test_cli(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "skip out of range",
+			name:    "skip_out_of_range",
 			args:    []string{Name, "clf", "-s", "65535", filepath.Join("testdata", "log", "sample_clf.log")},
 			wantErr: false,
 		},
@@ -167,13 +167,28 @@ func Test_cli(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "glob_pattern",
+			name:    "in+default",
+			args:    []string{Name, "clf", "-i", "default", filepath.Join("testdata", "log", "sample_clf.log")},
+			wantErr: false,
+		},
+		{
+			name:    "in+gz",
+			args:    []string{Name, "clf", "-i", "gz", filepath.Join("testdata", "gz", "sample_clf.log.gz")},
+			wantErr: false,
+		},
+		{
+			name:    "in+zip",
 			args:    []string{Name, "clf", "-i", "zip", "-g", "*", filepath.Join("testdata", "zip", "sample_clf.log.zip")},
 			wantErr: false,
 		},
 		{
-			name:    "glob_pattern error",
+			name:    "in+zip+glob_pattern_error",
 			args:    []string{Name, "clf", "-i", "zip", "-g", "[", filepath.Join("testdata", "zip", "sample_clf.log.zip")},
+			wantErr: true,
+		},
+		{
+			name:    "in+invalid_type",
+			args:    []string{Name, "clf", "-i", "", filepath.Join("testdata", "zip", "sample_clf.log.zip")},
 			wantErr: true,
 		},
 		{
@@ -202,37 +217,42 @@ func Test_cli(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "out+unknown_format",
-			args:    []string{Name, "clf", "-o", "dummy", filepath.Join("testdata", "log", "sample_clf.log")},
+			name:    "out+invalid_type",
+			args:    []string{Name, "clf", "-o", "", filepath.Join("testdata", "zip", "sample_clf.log.zip")},
 			wantErr: true,
 		},
 		{
-			name:    "completion bash",
+			name:    "no_zip+glob",
+			args:    []string{Name, "clf", "-i", "gz", "-g", "*", filepath.Join("testdata", "zip", "sample_clf.log.zip")},
+			wantErr: true,
+		},
+		{
+			name:    "completion_bash",
 			args:    []string{Name, "completion", "bash"},
 			wantErr: false,
 		},
 		{
-			name:    "completion zsh",
+			name:    "completion_zsh",
 			args:    []string{Name, "completion", "zsh"},
 			wantErr: false,
 		},
 		{
-			name:    "completion pwsh",
+			name:    "completion_pwsh",
 			args:    []string{Name, "completion", "pwsh"},
 			wantErr: false,
 		},
 		{
-			name:    "completion unsupported",
+			name:    "completion_unsupported",
 			args:    []string{Name, "completion", "fish"},
 			wantErr: true,
 		},
 		{
-			name:    "unknown flag provided",
+			name:    "unknown_flag_provided",
 			args:    []string{Name, "-1"},
 			wantErr: true,
 		},
 		{
-			name:    "no flag provided",
+			name:    "no_flag_provided",
 			args:    []string{Name},
 			wantErr: true,
 		},
