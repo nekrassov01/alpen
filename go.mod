@@ -1,6 +1,6 @@
 module github.com/nekrassov01/alpen
 
-go 1.21
+go 1.22.3
 
 require (
 	github.com/mattn/go-isatty v0.0.20
